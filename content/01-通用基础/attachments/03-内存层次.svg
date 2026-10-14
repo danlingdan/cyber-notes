@@ -1,0 +1,35 @@
+<svg viewBox="0 0 680 360" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+  <title>存储层次金字塔</title>
+  <desc>从寄存器、L1、L2/L3 缓存、主存到磁盘，越往下容量越大、速度越慢、单位成本越低。</desc>
+
+  <rect x="0" y="0" width="680" height="360" rx="12" fill="#FCFCFB" stroke="#E3E2DE" stroke-width="1"/>
+
+  <text x="40" y="46" font-size="14" font-weight="500" fill="#2C2C2A">存储层次：越靠上越快、越小、越贵</text>
+
+  <polygon points="280,70 400,70 430,118 250,118" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+  <text x="340" y="88" font-size="13" font-weight="500" fill="#042C53" text-anchor="middle" dominant-baseline="central">寄存器</text>
+  <text x="340" y="106" font-size="12" fill="#185FA5" text-anchor="middle" dominant-baseline="central">&lt; 1 ns</text>
+
+  <polygon points="250,118 430,118 460,166 220,166" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+  <text x="340" y="136" font-size="13" font-weight="500" fill="#042C53" text-anchor="middle" dominant-baseline="central">L1 缓存</text>
+  <text x="340" y="154" font-size="12" fill="#185FA5" text-anchor="middle" dominant-baseline="central">~1 ns · 32–64 KB</text>
+
+  <polygon points="220,166 460,166 490,214 190,214" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+  <text x="340" y="184" font-size="13" font-weight="500" fill="#042C53" text-anchor="middle" dominant-baseline="central">L2 / L3 缓存</text>
+  <text x="340" y="202" font-size="12" fill="#185FA5" text-anchor="middle" dominant-baseline="central">~10 ns · 几 MB</text>
+
+  <polygon points="190,214 490,214 520,262 160,262" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+  <text x="340" y="232" font-size="13" font-weight="500" fill="#042C53" text-anchor="middle" dominant-baseline="central">主存 RAM</text>
+  <text x="340" y="250" font-size="12" fill="#185FA5" text-anchor="middle" dominant-baseline="central">~100 ns · GB 级</text>
+
+  <polygon points="160,262 520,262 550,310 130,310" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
+  <text x="340" y="280" font-size="13" font-weight="500" fill="#444441" text-anchor="middle" dominant-baseline="central">磁盘 / SSD</text>
+  <text x="340" y="298" font-size="12" fill="#5F5E5A" text-anchor="middle" dominant-baseline="central">~100 µs · TB 级</text>
+
+  <text x="118" y="100" font-size="12" fill="#5F5E5A" text-anchor="end" dominant-baseline="central">速度最快</text>
+  <text x="118" y="280" font-size="12" fill="#5F5E5A" text-anchor="end" dominant-baseline="central">速度最慢</text>
+  <text x="562" y="100" font-size="12" fill="#5F5E5A" dominant-baseline="central">容量最小</text>
+  <text x="562" y="280" font-size="12" fill="#5F5E5A" dominant-baseline="central">容量最大</text>
+
+  <text x="340" y="338" font-size="12" fill="#5F5E5A" text-anchor="middle">越往下：容量越大、速度越慢、单位成本越低</text>
+</svg>
