@@ -20,21 +20,21 @@ publish: true
 
 全部从附件提取（`nm` / `readelf -r` / `nm -D libc.so.6`）：
 
-| 名称 | 值 | 用途 |
-|---|---|---|
-| `ggml_backend_cpu_buffer_name` | `libggml+0x95590` | = `buffer+0x00`，泄漏+自检 |
-| `ggml_backend_cpu_buffer_free_buffer` | `libggml+0x955f0` | = `buffer+0x08`，自检 |
-| `ggml_backend_cpu_buffer_get_base` | `libggml+0x955a0` | = `buffer+0x10`，自检 |
-| `free@GLIBC_2.2.5` GOT | `libggml+0x128950` | 泄漏 libc |
-| `malloc@GLIBC_2.2.5` GOT | `libggml+0x128bf8` | 交叉验证 |
-| `free` | `libc+0x9a6d0` | |
-| `malloc` | `libc+0x9a0e0` | 交叉验证 |
-| `system` | `libc+0x52290` | 劫持目标 |
-| `__free_hook` | `libc+0x1eee48` | 被劫持的 hook |
-| `environ` | `libc+0x1ef600` | 栈 ROP 路线用 |
-| `buffer->context` | `buffer+0x50` | free 的目标 / 放命令串 |
-| `buffer->size` | `buffer+0x58` | |
-| `tensor->data` | `tensor+0x100` | 读的源地址 |
+| 名称                                    | 值                  | 用途                    |
+| ------------------------------------- | ------------------ | --------------------- |
+| `ggml_backend_cpu_buffer_name`        | `libggml+0x95590`  | = `buffer+0x00`，泄漏+自检 |
+| `ggml_backend_cpu_buffer_free_buffer` | `libggml+0x955f0`  | = `buffer+0x08`，自检    |
+| `ggml_backend_cpu_buffer_get_base`    | `libggml+0x955a0`  | = `buffer+0x10`，自检    |
+| `free@GLIBC_2.2.5` GOT                | `libggml+0x128950` | 泄漏 libc               |
+| `malloc@GLIBC_2.2.5` GOT              | `libggml+0x128bf8` | 交叉验证                  |
+| `free`                                | `libc+0x9a6d0`     |                       |
+| `malloc`                              | `libc+0x9a0e0`     | 交叉验证                  |
+| `system`                              | `libc+0x52290`     | 劫持目标                  |
+| `__free_hook`                         | `libc+0x1eee48`    | 被劫持的 hook             |
+| `environ`                             | `libc+0x1ef600`    | 栈 ROP 路线用             |
+| `buffer->context`                     | `buffer+0x50`      | free 的目标 / 放命令串       |
+| `buffer->size`                        | `buffer+0x58`      |                       |
+| `tensor->data`                        | `tensor+0x100`     | 读的源地址                 |
 
 > [!info]- 偏移表的用法：真实地址 = 基址 + 偏移
 > 开着 ASLR 时，libc 和 libggml 每次运行被加载到不同位置，但**内部结构相对开头的位置永远不变**——函数在文件里偏移 0x95590，加载后就在"基址+0x95590"。所以打题的套路永远是：先拿到一个已知符号的真实地址，减去它在文件里的偏移算出**基址**，之后任何函数的真实地址都能用表里的偏移加出来。这就是本篇偏移表唯一的用法，也是为什么前面侦察阶段要花力气确认 libc 版本（版本不同，偏移全不同）。

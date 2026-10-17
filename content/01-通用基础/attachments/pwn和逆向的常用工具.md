@@ -22,7 +22,7 @@ publish: true
 
 **GEF** — 另一个 GDB 增强插件，功能与 pwndbg 类似，但在某些场景下更轻量。常与 pwndbg 并列作为 Pwn 工具链的标准组件。
 
-**WinDbg ** — Windows 平台调试器。WinDbg 适合内核和驱动调试。
+**WinDbg**  — Windows 平台调试器。WinDbg 适合内核和驱动调试。
 
 ==**x64dbg**== — x64dbg 是开源的用户态调试器，界面友好。
 

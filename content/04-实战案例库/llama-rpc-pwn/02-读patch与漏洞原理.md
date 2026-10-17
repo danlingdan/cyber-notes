@@ -64,7 +64,7 @@ bool rpc_server::edit_buffer(const std::vector<uint8_t> & input) {
 +        return false;
 +    }
 
- // 2) 把 set_tensor 打桩成"哑巴"
+ // 2) 把 set_tensor 失效
 -    ggml_backend_tensor_set(tensor, data, offset, size);   // 原本会往张量里写
 -    ...
 +    char res[] = "no set_tensor!";
