@@ -37,7 +37,7 @@ file hello
 
 ## 2. 两个视角：节与段
 
-![[05-ELF双视角.svg|563]]
+![|563](attachments/05-ELF双视角.svg)
 
 同一个文件，两套目录：
 

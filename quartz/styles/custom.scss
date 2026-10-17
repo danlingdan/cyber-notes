@@ -1,3 +1,8 @@
 @use "./variables.scss" as *;
 
 // put your custom CSS here!
+
+// 笔记里 ![|563](…) 的 alt 宽度标注：Obsidian 原生识别，这里让站点对齐同一宽度
+img[alt="|356"] { width: 356px; max-width: 100%; }
+img[alt="|563"] { width: 563px; max-width: 100%; }
+img[alt="|700"] { width: 700px; max-width: 100%; }
