@@ -267,8 +267,8 @@ for i in range(sym["size"] // 24):
 | `readelf -S` 报 "There are no sections" | 节区表被 sstrip 或壳删了，按程序头（`readelf -l`）和 `.dynamic` 分析 |
 | `.bss` 的变量在文件里找不到 | NOBITS 类型不占文件空间，只在内存映射中存在 |
 | `ldd` 对静态程序报错 | 正常，静态程序没有 interpreter，`file` 看链接方式即可 |
-| 找不到 main 函数 | 入口是 `_start`，main 的地址在它给 `__libc_start_main` 的第一个参数里（见 [[#7. 入口点：main 不是入口|入口点]]） |
+| 找不到 main 函数 | 入口是 `_start`，main 的地址在它给 `__libc_start_main` 的第一个参数里（见 [[#7. 入口点：main 不是入口\|入口点]]） |
 | GOT 和 PLT 分不清 | PLT 在代码段，是跳板代码；GOT 在数据段，存的是地址。调用经过 PLT，跳转目标查 GOT |
-| `checksec` 显示 RELRO 但 GOT 还能写 | partial RELRO 本来就不保护 `.got.plt`（[[#6. 动态链接：printf@plt 的完整跳转链|延迟绑定]]的 0x404000 例子），full 才只读 |
+| `checksec` 显示 RELRO 但 GOT 还能写 | partial RELRO 本来就不保护 `.got.plt`（[[#6. 动态链接：printf@plt 的完整跳转链\|延迟绑定]]的 0x404000 例子），full 才只读 |
 | 改 `.rodata` 里的字符串程序段错误 | 那页权限 `r--`，只读；想改走运行时 patch 内存页权限 |
-| 想知道二进制用了哪个 libc | `ldd` 本机程序直接看；赛题给 `.so` 文件时 `strings libc.so.6 | grep "GNU C"` 看版本号 |
+| 想知道二进制用了哪个 libc | `ldd` 本机程序直接看；赛题给 `.so` 文件时 `strings libc.so.6` 配 `grep "GNU C"` 看版本号 |
