@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="620" viewBox="0 0 560 620" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .plugin { font-size: 14px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11.5px; fill: #55534b; }
+    .sign   { font-size: 11.5px; fill: #d23f3f; }
+    .signtitle { font-size: 11.5px; font-weight: 600; fill: #d23f3f; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .greybox{ fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+  </style>
+
+  <rect x="0" y="0" width="560" height="620" fill="#fcfcfb"/>
+
+  <g>
+    <rect class="greybox" x="24" y="18" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="41" style="fill:#6d6a60">file 认三份材料</text>
+    <text class="desc"  x="40" y="61">内存镜像 / 磁盘镜像 / pcap，先辨形态再动手</text>
+    <text class="signtitle" x="344" y="34">看点</text>
+    <text class="sign" x="344" y="52">pcap 报链路类型，镜像报容器形态</text>
+    <text class="sign" x="344" y="68">无魔数的 raw 按体积与来源判断</text>
+  </g>
+
+  <path class="arrow" d="M 174 74 L 174 98"/>
+  <polygon class="arrowhead" points="174,102 169,94 179,94"/>
+
+  <g>
+    <rect class="box" x="24" y="106" width="300" height="86" rx="6"/>
+    <text class="plugin" x="40" y="129">分源走查（并列三条线）</text>
+    <text class="desc"  x="40" y="149">内存：printkey / userassist 复跑 + strings</text>
+    <text class="desc"  x="40" y="167">磁盘：mmls → fls → istat/icat → photorec → bodyfile</text>
+    <text class="desc"  x="40" y="185">流量：io,phs → conv → dns/http → POST 解密</text>
+    <text class="signtitle" x="344" y="122">产出</text>
+    <text class="sign" x="344" y="140">每源一份实体清单</text>
+    <text class="sign" x="344" y="156">用户名 / IP / 文件名 / 时间</text>
+    <text class="sign" x="344" y="172">实体是后面两张表的原料</text>
+  </g>
+
+  <path class="arrow" d="M 174 192 L 174 216"/>
+  <polygon class="arrowhead" points="174,220 169,212 179,212"/>
+
+  <g>
+    <rect class="box" x="24" y="224" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="247">实体对齐：四张索引卡</text>
+    <text class="desc"  x="40" y="267">用户名卡 / IP 卡 / 文件名卡 / 时间戳卡</text>
+    <text class="signtitle" x="344" y="240">看点</text>
+    <text class="sign" x="344" y="258">同一个实体在几源出现？</text>
+    <text class="sign" x="344" y="274">只在单源出现的实体先存疑</text>
+  </g>
+
+  <path class="arrow" d="M 174 280 L 174 304"/>
+  <polygon class="arrowhead" points="174,308 169,300 179,300"/>
+
+  <g>
+    <rect class="box" x="24" y="312" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="335">时间线合并</text>
+    <text class="desc"  x="40" y="355">三源事件统一 UTC，按时间排序成一张表</text>
+    <text class="signtitle" x="344" y="328">坑点</text>
+    <text class="sign" x="344" y="346">FILETIME / epoch / pcap 时间戳</text>
+    <text class="sign" x="344" y="362">TSK 显示走本地时区，别直接对字面值</text>
+  </g>
+
+  <path class="arrow" d="M 174 368 L 174 392"/>
+  <polygon class="arrowhead" points="174,396 169,388 179,388"/>
+
+  <g>
+    <rect class="box" x="24" y="400" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="423">跨源互证</text>
+    <text class="desc"  x="40" y="443">同秒聚簇、先解析后连接、日志对上抓包</text>
+    <text class="signtitle" x="344" y="416">判定</text>
+    <text class="sign" x="344" y="434">两源以上同指一个实体：可信</text>
+    <text class="sign" x="344" y="450">时间矛盾的事件：逐源复查</text>
+  </g>
+
+  <path class="arrow" d="M 174 456 L 174 480"/>
+  <polygon class="arrowhead" points="174,484 169,476 179,476"/>
+
+  <g>
+    <rect class="greybox" x="24" y="488" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="511" style="fill:#6d6a60">交付：四枚 flag 与事件链叙述</text>
+    <text class="desc"  x="40" y="531">内存 / 磁盘 / 流量各一枚 + 跨源一枚</text>
+    <text class="signtitle" x="344" y="504">下一步</text>
+    <text class="sign" x="344" y="522" style="fill:#55534b">把事件链写成一段完整叙述</text>
+    <text class="sign" x="344" y="538" style="fill:#55534b">实体表与时间线就是答案的底稿</text>
+  </g>
+
+  <text class="desc" x="24" y="580" style="fill:#8a8779">分源走查的每一步都是前几章的固定动作；本章新增的只有对齐、合并、互证三张表。</text>
+  <text class="desc" x="24" y="598" style="fill:#8a8779">任何一源卡住，回到其他源找线索指向的位置——这是多源取证的默认回路。</text>
+</svg>

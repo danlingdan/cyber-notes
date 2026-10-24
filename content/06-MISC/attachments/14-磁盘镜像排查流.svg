@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="660" viewBox="0 0 560 660" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .plugin { font-size: 14px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11.5px; fill: #55534b; }
+    .sign   { font-size: 11.5px; fill: #d23f3f; }
+    .signtitle { font-size: 11.5px; font-weight: 600; fill: #d23f3f; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .greybox{ fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+  </style>
+
+  <rect x="0" y="0" width="560" height="660" fill="#fcfcfb"/>
+
+  <g>
+    <rect class="box" x="24" y="18" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="41">file + mmls</text>
+    <text class="desc"  x="40" y="61">认容器形态，读分区表找起始扇区</text>
+    <text class="signtitle" x="344" y="34">看点</text>
+    <text class="sign" x="344" y="52">Start 扇区 x 512 = 后续工具的 -o 偏移</text>
+    <text class="sign" x="344" y="68">file 直接报出 NTFS 的 $MFT 参数</text>
+  </g>
+
+  <path class="arrow" d="M 174 74 L 174 98"/>
+  <polygon class="arrowhead" points="174,102 169,94 179,94"/>
+
+  <g>
+    <rect class="box" x="24" y="106" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="129">fls -o N -r -p</text>
+    <text class="desc"  x="40" y="149">列目录树，分配与已删条目一起看</text>
+    <text class="signtitle" x="344" y="122">可疑信号</text>
+    <text class="sign" x="344" y="140">* 标记的已删条目</text>
+    <text class="sign" x="344" y="156">与题面叙述对不上的目录结构</text>
+  </g>
+
+  <path class="arrow" d="M 174 162 L 174 186"/>
+  <polygon class="arrowhead" points="174,190 169,182 179,182"/>
+
+  <g>
+    <rect class="box" x="24" y="194" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="217">istat -o N &lt;inode&gt;</text>
+    <text class="desc"  x="40" y="237">大小、时间戳、dtime、块列表</text>
+    <text class="signtitle" x="344" y="210">可疑信号</text>
+    <text class="sign" x="344" y="228">删除时间与事件顺序矛盾</text>
+    <text class="sign" x="344" y="244">size 在而块列表为空：元数据被清</text>
+  </g>
+
+  <path class="arrow" d="M 174 250 L 174 274"/>
+  <polygon class="arrowhead" points="174,278 169,270 179,270"/>
+
+  <g>
+    <rect class="box" x="24" y="282" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="305">icat -o N &lt;inode&gt; &gt; out</text>
+    <text class="desc"  x="40" y="325">按块列表把内容抠回成文件</text>
+    <text class="signtitle" x="344" y="298">核对</text>
+    <text class="sign" x="344" y="316">diff / sha256 与已知原件比对</text>
+    <text class="sign" x="344" y="332">抠回全零说明块指针已被清</text>
+  </g>
+
+  <path class="arrow" d="M 174 338 L 174 362"/>
+  <polygon class="arrowhead" points="174,366 169,358 179,358"/>
+
+  <g>
+    <rect class="box" x="24" y="370" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="393">photorec</text>
+    <text class="desc"  x="40" y="413">签名雕刻，元数据缺失时的兜底</text>
+    <text class="signtitle" x="344" y="386">看点</text>
+    <text class="sign" x="344" y="404">文件名与目录结构丢失，按内容辨认</text>
+    <text class="sign" x="344" y="420">report.xml 记录每个文件的盘上偏移</text>
+  </g>
+
+  <path class="arrow" d="M 174 426 L 174 450"/>
+  <polygon class="arrowhead" points="174,454 169,446 179,446"/>
+
+  <g>
+    <rect class="box" x="24" y="458" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="481">strings + grep</text>
+    <text class="desc"  x="40" y="501">明文与关键字定位，偏移可喂 dd 切块</text>
+    <text class="signtitle" x="344" y="474">看点</text>
+    <text class="sign" x="344" y="492">flag 特征、时间戳、用户名都值得扫</text>
+    <text class="sign" x="344" y="508">无魔数的小文本靠它补位</text>
+  </g>
+
+  <path class="arrow" d="M 174 514 L 174 538"/>
+  <polygon class="arrowhead" points="174,542 169,534 179,534"/>
+
+  <g>
+    <rect class="greybox" x="24" y="546" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="569" style="fill: #6d6a60">汇总：日志与时间线</text>
+    <text class="desc"  x="40" y="589">syslog / evtx / mactime 三源对表</text>
+    <text class="signtitle" x="344" y="562">下一步</text>
+    <text class="sign" x="344" y="580" style="fill: #55534b">时间线互证还原事件顺序</text>
+    <text class="sign" x="344" y="596" style="fill: #55534b">与内存排查流（M12）并列使用</text>
+  </g>
+
+  <text class="desc" x="24" y="636" style="fill: #8a8779">每一步都有确定输出；元数据路线（fls/istat/icat）走不通时切签名路线（photorec），两条路线在日志与时间线上汇合。</text>
+</svg>

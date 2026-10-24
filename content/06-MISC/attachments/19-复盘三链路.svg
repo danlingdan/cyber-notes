@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="596" viewBox="0 0 980 596" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .lane   { font-size: 13px; font-weight: 700; fill: #6d6a5e; }
+    .step   { font-size: 13px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11px; fill: #55534b; }
+    .tag    { font-size: 10.5px; fill: #6d6a5e; }
+    .signtitle { font-size: 11px; font-weight: 600; fill: #d23f3f; }
+    .sign   { font-size: 11px; fill: #d23f3f; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .redbox { fill: #fcebeb; stroke: #e24b4a; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .dead   { stroke: #e24b4a; stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+    .arrowhead { fill: #b4b2a9; }
+    .deadhead  { fill: #e24b4a; }
+  </style>
+
+  <rect x="0" y="0" width="980" height="596" fill="#fcfcfb"/>
+
+  <!-- ============ 题一：签到级 ============ -->
+  <text class="lane" x="18" y="66">题一 · 签到级</text>
+  <text class="tag" x="18" y="84">改宽 PNG + 零宽尾巴</text>
+
+  <rect class="box" x="104" y="34" width="152" height="62" rx="6"/>
+  <text class="step" x="116" y="56">pngcheck 报 CRC 错</text>
+  <text class="desc" x="116" y="72">IHDR 被改宽高（M02）</text>
+  <text class="tag" x="116" y="88">M01 清单第 4 步</text>
+
+  <rect class="box" x="286" y="34" width="152" height="62" rx="6"/>
+  <text class="step" x="298" y="56">宽高爆破</text>
+  <text class="desc" x="298" y="72">解压 IDAT 数长度，</text>
+  <text class="desc" x="298" y="86">存储 CRC 锁定 240×64</text>
+
+  <rect class="box" x="468" y="34" width="152" height="62" rx="6"/>
+  <text class="step" x="480" y="56">看图拿提示</text>
+  <text class="desc" x="480" y="72">"真相在文件末尾"</text>
+  <text class="tag" x="480" y="88">M02 还原渲染</text>
+
+  <rect class="box" x="650" y="34" width="152" height="62" rx="6"/>
+  <text class="step" x="662" y="56">切 IEND 之后</text>
+  <text class="desc" x="662" y="72">243 字节夹带，</text>
+  <text class="desc" x="662" y="86">码点统计 ZWNJ/ZWJ…</text>
+
+  <rect class="box" x="832" y="34" width="132" height="62" rx="6"/>
+  <text class="step" x="844" y="56">零宽解码</text>
+  <text class="desc" x="844" y="72">flag{crc_never_lies}</text>
+  <text class="tag" x="844" y="88">M07 5.3</text>
+
+  <line class="arrow" x1="256" y1="65" x2="280" y2="65"/><polygon class="arrowhead" points="280,61 288,65 280,69"/>
+  <line class="arrow" x1="438" y1="65" x2="462" y2="65"/><polygon class="arrowhead" points="462,61 470,65 462,69"/>
+  <line class="arrow" x1="620" y1="65" x2="644" y2="65"/><polygon class="arrowhead" points="644,61 652,65 644,69"/>
+  <line class="arrow" x1="802" y1="65" x2="826" y2="65"/><polygon class="arrowhead" points="826,61 834,65 826,69"/>
+
+  <rect class="redbox" x="286" y="128" width="334" height="40" rx="6"/>
+  <text class="signtitle" x="298" y="146">死路：zsteg 全扫位平面</text>
+  <text class="sign" x="298" y="162">b1–b3 全空，仅有误报行——像素层没货，货在尾部</text>
+  <line class="dead" x1="362" y1="96" x2="362" y2="126"/><polygon class="deadhead" points="358,126 366,126 362,134"/>
+
+  <!-- ============ 题二：中档 ============ -->
+  <text class="lane" x="18" y="234">题二 · 中档</text>
+  <text class="tag" x="18" y="252">频谱口令 + 伪加密 + 调色板</text>
+
+  <rect class="box" x="104" y="202" width="152" height="62" rx="6"/>
+  <text class="step" x="116" y="224">WAV 频谱读口令</text>
+  <text class="desc" x="116" y="240">分帧 FFT 重建位图：</text>
+  <text class="desc" x="116" y="254">AUDIO（M08 4.1）</text>
+
+  <rect class="box" x="286" y="202" width="152" height="62" rx="6"/>
+  <text class="step" x="298" y="224">zip 两副面孔</text>
+  <text class="desc" x="298" y="240">unzip 要口令，</text>
+  <text class="desc" x="298" y="254">7z l 照常列表（M04）</text>
+
+  <rect class="box" x="468" y="202" width="152" height="62" rx="6"/>
+  <text class="step" x="480" y="224">口令喂 note.txt</text>
+  <text class="desc" x="480" y="240">OK；palette.png 仍</text>
+  <text class="desc" x="480" y="254">incorrect password</text>
+
+  <rect class="box" x="650" y="202" width="152" height="62" rx="6"/>
+  <text class="step" x="662" y="224">清 palette 标志位</text>
+  <text class="desc" x="662" y="240">LFH+6 与 CDH+8 两处</text>
+  <text class="desc" x="662" y="254">bit0（M04 4.1）</text>
+
+  <rect class="box" x="832" y="202" width="132" height="62" rx="6"/>
+  <text class="step" x="844" y="224">PLTE 先验还原</text>
+  <text class="desc" x="844" y="240">16 级等距灰阶</text>
+  <text class="tag" x="844" y="256">M16 6.2 → flag</text>
+
+  <line class="arrow" x1="256" y1="233" x2="280" y2="233"/><polygon class="arrowhead" points="280,229 288,233 280,237"/>
+  <line class="arrow" x1="438" y1="233" x2="462" y2="233"/><polygon class="arrowhead" points="462,229 470,233 462,237"/>
+  <line class="arrow" x1="620" y1="233" x2="644" y2="233"/><polygon class="arrowhead" points="644,229 652,233 644,237"/>
+  <line class="arrow" x1="802" y1="233" x2="826" y2="233"/><polygon class="arrowhead" points="826,229 834,233 826,237"/>
+
+  <rect class="redbox" x="286" y="296" width="334" height="40" rx="6"/>
+  <text class="signtitle" x="298" y="314">死路：字典爆破与 binwalk</text>
+  <text class="sign" x="298" y="330">john 0 命中（口令在频谱里）；binwalk 只复读"encrypted"</text>
+  <line class="dead" x1="362" y1="264" x2="362" y2="294"/><polygon class="deadhead" points="358,294 366,294 362,302"/>
+
+  <!-- ============ 题三：硬核 ============ -->
+  <text class="lane" x="18" y="402">题三 · 硬核</text>
+  <text class="tag" x="18" y="420">USB 键盘 + 卡方 + XOR</text>
+
+  <rect class="box" x="104" y="370" width="152" height="62" rx="6"/>
+  <text class="step" x="116" y="392">usb.capdata 提取</text>
+  <text class="desc" x="116" y="408">M11 键盘翻译脚本</text>
+  <text class="desc" x="116" y="422">→ base64 3076 字符</text>
+
+  <rect class="box" x="286" y="370" width="152" height="62" rx="6"/>
+  <text class="step" x="298" y="392">base64 解出 PNG</text>
+  <text class="desc" x="298" y="408">gallery.png 128×96，</text>
+  <text class="desc" x="298" y="422">pngcheck 干净</text>
+
+  <rect class="box" x="468" y="370" width="152" height="62" rx="6"/>
+  <text class="step" x="480" y="392">滑窗卡方定位</text>
+  <text class="desc" x="480" y="408">R 通道 p 在中心行 44</text>
+  <text class="desc" x="480" y="422">断崖（M15 2.2）</text>
+
+  <rect class="box" x="650" y="370" width="152" height="62" rx="6"/>
+  <text class="step" x="662" y="392">R bit0 提取</text>
+  <text class="desc" x="662" y="408">M05 组合语义</text>
+  <text class="desc" x="662" y="422">b1,r 等价手撕 MSB</text>
+
+  <rect class="box" x="832" y="370" width="132" height="62" rx="6"/>
+  <text class="step" x="844" y="392">单字节 XOR</text>
+  <text class="desc" x="844" y="408">0x5A 下现 PNG 头</text>
+  <text class="tag" x="844" y="424">M16 8.3 → flag</text>
+
+  <line class="arrow" x1="256" y1="401" x2="280" y2="401"/><polygon class="arrowhead" points="280,397 288,401 280,405"/>
+  <line class="arrow" x1="438" y1="401" x2="462" y2="401"/><polygon class="arrowhead" points="462,397 470,401 462,405"/>
+  <line class="arrow" x1="620" y1="401" x2="644" y2="401"/><polygon class="arrowhead" points="644,397 652,401 644,405"/>
+  <line class="arrow" x1="802" y1="401" x2="826" y2="401"/><polygon class="arrowhead" points="826,397 834,401 826,405"/>
+
+  <rect class="redbox" x="286" y="464" width="334" height="40" rx="6"/>
+  <text class="signtitle" x="298" y="482">死路：zsteg 的两行"有效"输出</text>
+  <text class="sign" x="298" y="498">b1,r 碎片是 XOR 后的巧合可打印段；b4,g 重复花纹是底纹（卡方阴性）</text>
+  <line class="dead" x1="362" y1="432" x2="362" y2="462"/><polygon class="deadhead" points="358,462 366,462 362,470"/>
+
+  <!-- 底部共性 -->
+  <rect class="redbox" x="650" y="464" width="314" height="40" rx="6"/>
+  <text class="signtitle" x="662" y="482">三道题的第一步都相同</text>
+  <text class="sign" x="662" y="498">M01 5.2 固定动作清单：file → xxd → strings → pngcheck/binwalk</text>
+
+  <text class="tag" x="18" y="556">蓝色为主线；红色为出题人留的死路——识别它、记录它，然后回到主线。</text>
+</svg>

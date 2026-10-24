@@ -977,4 +977,4 @@ node safe_merge.js
 - Node.js 官方文档 CLI 页（<https://nodejs.org/api/cli.html>）：`NODE_OPTIONS` 的允许参数表与 `--frozen-intrinsics` 的实验性说明；
 - PortSwigger 的 Prototype pollution 专题（<https://portswigger.net/web-security/prototype-pollution>）：客户端与服务端污染、gadget 的系统整理；
 - GitHub Advisory Database（<https://github.com/advisories>）：按 "prototype pollution" 检索 qs、lodash 等高频依赖的历史漏洞与修复版本；
-- 工具速查见 [[03-工具清单|05-资源索引·工具清单]]；下一章把视角切到业务层，讲逻辑与认证漏洞。
+- 工具速查见 [[03-工具清单|08-资源索引·工具清单]]；下一章把视角切到业务层，讲逻辑与认证漏洞。

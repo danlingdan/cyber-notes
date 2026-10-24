@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="700" viewBox="0 0 980 700" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .lane   { font-size: 13px; font-weight: 700; fill: #6d6a5e; }
+    .step   { font-size: 13px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11px; fill: #55534b; }
+    .tag    { font-size: 10.5px; fill: #6d6a5e; }
+    .final  { font-size: 13px; font-weight: 600; fill: #6d6a5e; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .top    { fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .graybox{ fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .redbox { fill: #fcebeb; stroke: #e24b4a; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+  </style>
+
+  <rect x="0" y="0" width="980" height="700" fill="#fcfcfb"/>
+
+  <!-- 顶部：固定动作 -->
+  <rect class="top" x="104" y="26" width="772" height="56" rx="6"/>
+  <text class="lane" x="120" y="50">任何附件的第一轮：M01 5.2 固定动作清单（秒级成本，无条件执行）</text>
+  <text class="desc" x="120" y="68">file 问真身 → xxd 看头尾 → strings 扫可见串 → pngcheck / binwalk 查结构</text>
+
+  <line class="arrow" x1="490" y1="82" x2="490" y2="106"/>
+  <polygon class="arrowhead" points="486,106 494,106 490,114"/>
+  <text class="tag" x="502" y="100">按 file 报的真身分流</text>
+
+  <!-- 单项线 行一 -->
+  <text class="lane" x="18" y="150">单项线</text>
+
+  <rect class="box" x="104" y="124" width="178" height="76" rx="6"/>
+  <text class="step" x="116" y="146">图片</text>
+  <text class="desc" x="116" y="163">pngcheck / zsteg / exiftool</text>
+  <text class="desc" x="116" y="178">stegsolve / PIL</text>
+  <text class="tag" x="116" y="193">M02–M06 · 检测 M15</text>
+
+  <rect class="box" x="302" y="124" width="178" height="76" rx="6"/>
+  <text class="step" x="314" y="146">音频</text>
+  <text class="desc" x="314" y="163">sox / ffmpeg 看波形频谱</text>
+  <text class="desc" x="314" y="178">LSB · Morse · DTMF · steghide</text>
+  <text class="tag" x="314" y="193">M08</text>
+
+  <rect class="box" x="500" y="124" width="178" height="76" rx="6"/>
+  <text class="step" x="512" y="146">视频</text>
+  <text class="desc" x="512" y="163">ffprobe 流清单 / 拆帧</text>
+  <text class="desc" x="512" y="178">帧间 · 字幕轨 · 容器尾部</text>
+  <text class="tag" x="512" y="193">M09</text>
+
+  <rect class="box" x="698" y="124" width="178" height="76" rx="6"/>
+  <text class="step" x="710" y="146">文档</text>
+  <text class="desc" x="710" y="163">unzip 手抠 docx / pdftotext</text>
+  <text class="desc" x="710" y="178">元数据 · 零宽字符</text>
+  <text class="tag" x="710" y="193">M07</text>
+
+  <!-- 单项线 行二 -->
+  <rect class="box" x="104" y="216" width="178" height="76" rx="6"/>
+  <text class="step" x="116" y="238">压缩包</text>
+  <text class="desc" x="116" y="255">7z l / zipinfo 列条目</text>
+  <text class="desc" x="116" y="270">伪加密 · bkcrack · john</text>
+  <text class="tag" x="116" y="285">M04</text>
+
+  <rect class="box" x="302" y="216" width="178" height="76" rx="6"/>
+  <text class="step" x="314" y="238">流量包</text>
+  <text class="desc" x="314" y="255">tshark phs → follow → 导出</text>
+  <text class="desc" x="314" y="270">USB 键鼠 · TLS · 隧道</text>
+  <text class="tag" x="314" y="285">M10 · M11</text>
+
+  <rect class="box" x="500" y="216" width="178" height="76" rx="6"/>
+  <text class="step" x="512" y="238">内存镜像</text>
+  <text class="desc" x="512" y="255">vol 三视图 → malfind</text>
+  <text class="desc" x="512" y="270">时间线 · 注册表</text>
+  <text class="tag" x="512" y="285">M12 · M13</text>
+
+  <rect class="box" x="698" y="216" width="178" height="76" rx="6"/>
+  <text class="step" x="710" y="238">磁盘镜像</text>
+  <text class="desc" x="710" y="255">分区表 → photorec</text>
+  <text class="desc" x="710" y="270">删除恢复 · ADS</text>
+  <text class="tag" x="710" y="285">M14</text>
+
+  <!-- 单项线 行三 -->
+  <rect class="box" x="104" y="308" width="178" height="76" rx="6"/>
+  <text class="step" x="116" y="330">日志</text>
+  <text class="desc" x="116" y="347">文本日志 / evtx</text>
+  <text class="desc" x="116" y="362">mactime 时间线（-z UTC）</text>
+  <text class="tag" x="116" y="377">M14 第 6 节</text>
+
+  <rect class="box" x="302" y="308" width="178" height="76" rx="6"/>
+  <text class="step" x="314" y="330">杂类附件</text>
+  <text class="desc" x="314" y="347">坐标 / 存档 / 乱码数据</text>
+  <text class="desc" x="314" y="362">可视化 · OCR · 运算</text>
+  <text class="tag" x="314" y="377">M16</text>
+
+  <rect class="redbox" x="500" y="308" width="376" height="76" rx="6"/>
+  <text class="step" x="512" y="330" fill="#d23f3f">多份附件互为钥匙？</text>
+  <text class="desc" x="512" y="347">一件的产出是另一件的输入（口令、密钥、坐标）</text>
+  <text class="desc" x="512" y="362">实体对齐 → 时间合并 → 跨源互证</text>
+  <text class="tag" x="512" y="377">M18 多源关联</text>
+
+  <line class="arrow" x1="490" y1="392" x2="490" y2="416"/>
+  <polygon class="arrowhead" points="486,416 494,416 490,424"/>
+  <text class="tag" x="502" y="410">单项线解不动 / 多源咬合 / 进赛事</text>
+
+  <!-- 收官层 -->
+  <text class="lane" x="18" y="466">收官层</text>
+
+  <rect class="graybox" x="104" y="440" width="178" height="76" rx="6"/>
+  <text class="final" x="116" y="462">M17 OSINT</text>
+  <text class="desc" x="116" y="479">证据在附件之外</text>
+  <text class="desc" x="116" y="494">EXIF GPS · 旁证比对</text>
+
+  <rect class="graybox" x="302" y="440" width="178" height="76" rx="6"/>
+  <text class="final" x="314" y="462">M18 多源关联</text>
+  <text class="desc" x="314" y="479">内存 + 磁盘 + 流量</text>
+  <text class="desc" x="314" y="494">四枚 flag 的案件</text>
+
+  <rect class="graybox" x="500" y="440" width="178" height="76" rx="6"/>
+  <text class="final" x="512" y="462">M19 真题复盘</text>
+  <text class="desc" x="512" y="479">三道成题全流程</text>
+  <text class="desc" x="512" y="494">死路识别与记录</text>
+
+  <rect class="graybox" x="698" y="440" width="178" height="76" rx="6"/>
+  <text class="final" x="710" y="462">M20 本章</text>
+  <text class="desc" x="710" y="479">工作流 · AI 边界</text>
+  <text class="desc" x="710" y="494">时间分配与沉淀</text>
+
+  <text class="tag" x="18" y="560">读法：拿到附件先走顶部灰箱的固定动作，按 file 报的真身进对应蓝箱；</text>
+  <text class="tag" x="18" y="578">附件不止一份且互为钥匙时，直接升级到红箱的多源套路；灰色收官层是综合视角。</text>
+</svg>

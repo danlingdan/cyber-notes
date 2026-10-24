@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="620" viewBox="0 0 980 620" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .lane   { font-size: 13px; font-weight: 700; fill: #6d6a5e; }
+    .step   { font-size: 13px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11px; fill: #55534b; }
+    .tag    { font-size: 10.5px; fill: #6d6a5e; }
+    .q      { font-size: 13px; font-weight: 600; fill: #55534b; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .top    { fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .redbox { fill: #fcebeb; stroke: #e24b4a; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+    .redhead { fill: #e24b4a; }
+  </style>
+
+  <rect x="0" y="0" width="980" height="620" fill="#fcfcfb"/>
+
+  <rect class="top" x="330" y="22" width="320" height="44" rx="6"/>
+  <text class="lane" x="346" y="49">附件到手：M01 5.2 固定动作四步跑完</text>
+
+  <line class="arrow" x1="490" y1="66" x2="490" y2="88"/>
+  <polygon class="arrowhead" points="486,88 494,88 490,96"/>
+
+  <rect class="box" x="380" y="98" width="220" height="44" rx="6"/>
+  <text class="q" x="452" y="125">file 认出真身？</text>
+
+  <!-- 否：右边 -->
+  <line class="arrow" x1="600" y1="120" x2="640" y2="120"/>
+  <polygon class="arrowhead" points="640,116 640,124 648,120"/>
+  <text class="tag" x="608" y="112">否</text>
+  <rect class="redbox" x="650" y="92" width="314" height="56" rx="6"/>
+  <text class="step" x="662" y="114" fill="#d23f3f">12 章魔数表补头修尾；仍认不出</text>
+  <text class="desc" x="662" y="131">按 M16 脑洞线走：可视化 / OCR / 结构猜</text>
+
+  <!-- 是：向下分三列 -->
+  <line class="arrow" x1="490" y1="142" x2="490" y2="164"/>
+  <polygon class="arrowhead" points="486,164 494,164 490,172"/>
+  <text class="tag" x="498" y="160">是</text>
+  <line class="arrow" x1="165" y1="176" x2="815" y2="176"/>
+  <line class="arrow" x1="165" y1="176" x2="165" y2="188"/>
+  <polygon class="arrowhead" points="161,188 169,188 165,196"/>
+  <line class="arrow" x1="490" y1="176" x2="490" y2="188"/>
+  <polygon class="arrowhead" points="486,188 494,188 490,196"/>
+  <line class="arrow" x1="815" y1="176" x2="815" y2="188"/>
+  <polygon class="arrowhead" points="811,188 819,188 815,196"/>
+
+  <!-- 列一：压缩包线 -->
+  <rect class="box" x="30" y="198" width="270" height="36" rx="6"/>
+  <text class="step" x="42" y="221">压缩包线（M04）</text>
+
+  <rect class="box" x="30" y="248" width="270" height="56" rx="6"/>
+  <text class="step" x="42" y="268">7z l / zipinfo 列条目</text>
+  <text class="desc" x="42" y="285">条目名、注释、加密标志一次看完</text>
+
+  <rect class="box" x="30" y="318" width="270" height="56" rx="6"/>
+  <text class="step" x="42" y="338">能开 → 全部拆出</text>
+  <text class="desc" x="42" y="355">每拆出一件，回固定动作第 1 步</text>
+  <text class="desc" x="42" y="369">多层套娃交给 M04 8 节的脚本</text>
+
+  <rect class="box" x="30" y="388" width="270" height="72" rx="6"/>
+  <text class="step" x="42" y="408">要口令 → 先疑伪加密</text>
+  <text class="desc" x="42" y="425">7z l 正常但解压要口令即第一信号</text>
+  <text class="desc" x="42" y="439">真加密：bkcrack 已知明文（M04 5）</text>
+  <text class="desc" x="42" y="453">再字典爆破 john（M04 6）</text>
+
+  <!-- 列二：单媒体线 -->
+  <rect class="box" x="355" y="198" width="270" height="36" rx="6"/>
+  <text class="step" x="367" y="221">单媒体线（M02/M03/M05–M09）</text>
+
+  <rect class="box" x="355" y="248" width="270" height="56" rx="6"/>
+  <text class="step" x="367" y="268">结构层先查</text>
+  <text class="desc" x="367" y="285">pngcheck -v 报块错；binwalk 扫嵌入；</text>
+  <text class="desc" x="367" y="299">IEND / EOI / box 树之后看尾部（M02/M03/M09）</text>
+
+  <rect class="box" x="355" y="318" width="270" height="72" rx="6"/>
+  <text class="step" x="367" y="338">像素 / 采样层再查</text>
+  <text class="desc" x="367" y="355">zsteg 全组合（M05）· DCT 域（M06）</text>
+  <text class="desc" x="367" y="369">频谱 / LSB / Morse / DTMF（M08）</text>
+  <text class="desc" x="367" y="383">文档内容层与零宽（M07）</text>
+
+  <rect class="box" x="355" y="404" width="270" height="56" rx="6"/>
+  <text class="step" x="367" y="424">扫不出但确定有货</text>
+  <text class="desc" x="367" y="441">统计检测定向：滑窗卡方 / RS（M15），</text>
+  <text class="desc" x="367" y="455">别在固定组合上无限换参数</text>
+
+  <!-- 列三：取证线 -->
+  <rect class="box" x="680" y="198" width="270" height="36" rx="6"/>
+  <text class="step" x="692" y="221">取证线（M10–M14）</text>
+
+  <rect class="box" x="680" y="248" width="270" height="56" rx="6"/>
+  <text class="step" x="692" y="268">流量包：先统计后定位</text>
+  <text class="desc" x="692" y="285">phs → conv → follow → 导出对象</text>
+  <text class="desc" x="692" y="299">（M10 第 4、5 节的四步范式）</text>
+
+  <rect class="box" x="680" y="318" width="270" height="56" rx="6"/>
+  <text class="step" x="692" y="338">密文与外设</text>
+  <text class="desc" x="692" y="355">SSLKEYLOGFILE 解 TLS；USB 键鼠翻译；</text>
+  <text class="desc" x="692" y="369">WiFi 握手离线爆破（M11）</text>
+
+  <rect class="box" x="680" y="388" width="270" height="72" rx="6"/>
+  <text class="step" x="692" y="408">镜像：清单 → 对象 → 时间线</text>
+  <text class="desc" x="692" y="425">内存：vol 三视图 → malfind（M12/M13）</text>
+  <text class="desc" x="692" y="439">磁盘：分区表 → photorec → 日志时间线</text>
+  <text class="desc" x="692" y="453">（M14，mactime 记得 -z UTC）</text>
+
+  <!-- 底部汇总 -->
+  <line class="arrow" x1="490" y1="472" x2="490" y2="496"/>
+  <polygon class="arrowhead" points="486,496 494,496 490,504"/>
+  <rect class="top" x="104" y="508" width="772" height="72" rx="6"/>
+  <text class="step" x="120" y="532">收口两条规则</text>
+  <text class="desc" x="120" y="550">多附件互为钥匙：把每件的产出（口令、密钥、坐标、明文）带回其他件各试一遍——实体对齐是 M18 的套路；</text>
+  <text class="desc" x="120" y="566">每条线一个时间盒（2.3 节）：到点没信号，写卡片、留死路记录、换题。</text>
+</svg>

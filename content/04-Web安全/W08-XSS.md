@@ -942,6 +942,6 @@ curl -s --noproxy '*' http://127.0.0.1:8801/index.php | grep '<li>'
 - PortSwigger Web Security Academy 的 Cross-site scripting 章节（portswigger.net/web-security）：三型各有一组免费互动实验，含 DOM 型专章与 CSP 绕过实验；
 - MDN 的 Content Security Policy 文档（developer.mozilla.org）：指令全集与 nonce/hash 语义的权威说明；
 - PayloadsAllTheThings 的 XSS 篇（GitHub）：按上下文归类的 payload 速查表，本章之外的变体从这里续；
-- 平台与书单见 [[01-练习平台索引|05-资源索引·练习平台]] 与 [[02-书单与Wiki|05-资源索引·书单]]，工具索引见 [[03-工具清单|05-资源索引·工具清单]]。
+- 平台与书单见 [[01-练习平台索引|08-资源索引·练习平台]] 与 [[02-书单与Wiki|08-资源索引·书单]]，工具索引见 [[03-工具清单|08-资源索引·工具清单]]。
 
 下一站：[[W09-SSTI|W09]]——"输入被当成代码执行"换到模板引擎里再演一遍，探测手法（`{{7*7}}`）与 XSS 的上下文探测同源；[[W07-文件上传|W07]] 的上传目录若允许落 HTML/SVG，存储型 XSS 会借道文件上传重演。

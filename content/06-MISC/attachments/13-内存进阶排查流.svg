@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="566" viewBox="0 0 560 566" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .plugin { font-size: 14px; font-weight: 600; fill: #2b6ea8; }
+    .desc   { font-size: 11.5px; fill: #55534b; }
+    .sign   { font-size: 11.5px; fill: #d23f3f; }
+    .signtitle { font-size: 11.5px; font-weight: 600; fill: #d23f3f; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .greybox{ fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+  </style>
+
+  <rect x="0" y="0" width="560" height="566" fill="#fcfcfb"/>
+
+  <!-- 六个阶段 -->
+  <g>
+    <rect class="box" x="24" y="18" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="41">timeliner</text>
+    <text class="desc"  x="40" y="61">多插件时间事件汇总排序，圈定事件窗口</text>
+    <text class="signtitle" x="344" y="34">看点</text>
+    <text class="sign" x="344" y="52">时间聚簇指出"什么时候发生了什么"</text>
+    <text class="sign" x="344" y="68">进程权威时间以 pslist 为准</text>
+  </g>
+
+  <path class="arrow" d="M 174 74 L 174 98"/>
+  <polygon class="arrowhead" points="174,102 169,94 179,94"/>
+
+  <g>
+    <rect class="box" x="24" y="106" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="129">windows.malware.malfind</text>
+    <text class="desc"  x="40" y="149">扫描各进程 VAD，定位注入的代码段</text>
+    <text class="signtitle" x="344" y="122">命中特征</text>
+    <text class="sign" x="344" y="140">私有内存且可写可执行</text>
+    <text class="sign" x="344" y="156">段首是 MZ 头（Notes 列标注）</text>
+  </g>
+
+  <path class="arrow" d="M 174 162 L 174 186"/>
+  <polygon class="arrowhead" points="174,190 169,182 179,182"/>
+
+  <g>
+    <rect class="box" x="24" y="194" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="217">--dump / dumpfiles / pslist --dump</text>
+    <text class="desc"  x="40" y="237">把注入段、缓存文件、进程 exe 抠成文件</text>
+    <text class="signtitle" x="344" y="210">看点</text>
+    <text class="sign" x="344" y="228">file 认 PE：节数能区分三份本体</text>
+    <text class="sign" x="344" y="244">4 KB 的 ASCII 产物多半是 ADS</text>
+  </g>
+
+  <path class="arrow" d="M 174 250 L 174 274"/>
+  <polygon class="arrowhead" points="174,278 169,270 179,270"/>
+
+  <g>
+    <rect class="box" x="24" y="282" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="305">strings + grep</text>
+    <text class="desc"  x="40" y="325">对 dump 物与整镜像检索外联与配置</text>
+    <text class="signtitle" x="344" y="298">可疑信号</text>
+    <text class="sign" x="344" y="316">IP:端口直连、固定路径的 URL</text>
+    <text class="sign" x="344" y="332">针对网银页面的注入模板片段</text>
+  </g>
+
+  <path class="arrow" d="M 174 338 L 174 362"/>
+  <polygon class="arrowhead" points="174,366 169,358 179,358"/>
+
+  <g>
+    <rect class="box" x="24" y="370" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="393">hivelist --dump → regipy / userassist</text>
+    <text class="desc"  x="40" y="413">整 hive 离线解析，把落地痕迹查全</text>
+    <text class="signtitle" x="344" y="386">可疑信号</text>
+    <text class="sign" x="344" y="404">随机名字的根键、伪装值名</text>
+    <text class="sign" x="344" y="420">UserAssist 里的程序运行记录</text>
+  </g>
+
+  <path class="arrow" d="M 174 426 L 174 450"/>
+  <polygon class="arrowhead" points="174,454 169,446 179,446"/>
+
+  <g>
+    <rect class="greybox" x="24" y="458" width="300" height="56" rx="6"/>
+    <text class="plugin" x="40" y="481" style="fill: #6d6a60">汇总：落地痕迹清单</text>
+    <text class="desc"  x="40" y="501">内存侧写收口，交给磁盘排查续查</text>
+    <text class="signtitle" x="344" y="474">下一步</text>
+    <text class="sign" x="344" y="492" style="fill: #55534b">同名文件到磁盘镜像上找落点</text>
+    <text class="sign" x="344" y="508" style="fill: #55534b">文件系统解析与删除恢复（M14）</text>
+  </g>
+
+  <text class="desc" x="24" y="548" style="fill: #8a8779">时间线先圈窗口，malfind 定对象，提取与检索补证据，注册表深挖收尾；每一步产物落盘可复核。</text>
+</svg>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="700" viewBox="0 0 560 700" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .step   { font-size: 14px; font-weight: 600; fill: #2b6ea8; }
+    .stepg  { font-size: 14px; font-weight: 600; fill: #6d6a5e; }
+    .stepr  { font-size: 14px; font-weight: 600; fill: #d23f3f; }
+    .desc   { font-size: 11.5px; fill: #55534b; }
+    .sign   { font-size: 11.5px; fill: #d23f3f; }
+    .signtitle { font-size: 11.5px; font-weight: 600; fill: #d23f3f; }
+    .box    { fill: #e6f1fb; stroke: #378add; stroke-width: 1.2; }
+    .greybox{ fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.2; }
+    .redbox { fill: #fcebeb; stroke: #e24b4a; stroke-width: 1.2; }
+    .arrow  { stroke: #b4b2a9; stroke-width: 1.4; fill: none; }
+    .arrowhead { fill: #b4b2a9; }
+  </style>
+
+  <rect x="0" y="0" width="560" height="700" fill="#fcfcfb"/>
+
+  <g>
+    <rect class="box" x="24" y="18" width="300" height="56" rx="6"/>
+    <text class="step" x="40" y="41">1  盘点附件与合规边界</text>
+    <text class="desc" x="40" y="61">file / exiftool / strings 先读全附件自身（M01 清单）</text>
+    <text class="signtitle" x="344" y="34">看点</text>
+    <text class="sign" x="344" y="52">先分清出题人自造信息与真实公开信息，</text>
+    <text class="sign" x="344" y="68">只对题目授权的信息做检索</text>
+  </g>
+
+  <path class="arrow" d="M 174 74 L 174 98"/>
+  <polygon class="arrowhead" points="174,102 169,94 179,94"/>
+
+  <g>
+    <rect class="box" x="24" y="106" width="300" height="56" rx="6"/>
+    <text class="step" x="40" y="129">2  EXIF GPS 读坐标</text>
+    <text class="desc" x="40" y="149">exiftool -a -G1 -gps:all 照片.jpg</text>
+    <text class="signtitle" x="344" y="122">看点</text>
+    <text class="sign" x="344" y="140">坐标是度分秒加方向字母，</text>
+    <text class="sign" x="344" y="156">不能直接粘进地图服务</text>
+  </g>
+
+  <path class="arrow" d="M 174 162 L 174 186"/>
+  <polygon class="arrowhead" points="174,190 169,182 179,182"/>
+
+  <g>
+    <rect class="box" x="24" y="194" width="300" height="56" rx="6"/>
+    <text class="step" x="40" y="217">3  坐标换算与地图核对</text>
+    <text class="desc" x="40" y="237">d + m/60 + s/3600，S / W 取负（式 17.1）</text>
+    <text class="signtitle" x="344" y="210">看点</text>
+    <text class="sign" x="344" y="228">十进制坐标查地图是在线步骤，</text>
+    <text class="sign" x="344" y="244">注意 WGS-84 与 GCJ-02 的坐标偏移</text>
+  </g>
+
+  <path class="arrow" d="M 174 250 L 174 274"/>
+  <polygon class="arrowhead" points="174,278 169,270 179,270"/>
+
+  <g>
+    <rect class="greybox" x="24" y="282" width="300" height="70" rx="6"/>
+    <text class="stepg" x="40" y="305">4  无 GPS 时：影像旁证比对</text>
+    <text class="desc" x="40" y="325">影子方位 · 招牌语言 · 车牌制式 · 行道树</text>
+    <text class="desc" x="40" y="341">· 电线杆制式 · 山形海岸线（现场技能）</text>
+    <text class="signtitle" x="344" y="298">看点</text>
+    <text class="sign" x="344" y="316">单条旁证只排除大范围，</text>
+    <text class="sign" x="344" y="332">多张照片的旁证取交集才收敛；</text>
+    <text class="sign" x="344" y="348">太阳方位角可按式 17.3–17.5 离线算</text>
+  </g>
+
+  <path class="arrow" d="M 174 352 L 174 376"/>
+  <polygon class="arrowhead" points="174,380 169,372 179,372"/>
+
+  <g>
+    <rect class="box" x="24" y="384" width="300" height="56" rx="6"/>
+    <text class="step" x="40" y="407">5  找版本：git 历史检索</text>
+    <text class="desc" x="40" y="427">git log -p / git grep "flag{" $(git rev-list --all)</text>
+    <text class="signtitle" x="344" y="400">看点</text>
+    <text class="sign" x="344" y="418">删过的文件活在历史提交里，</text>
+    <text class="sign" x="344" y="434">.git/objects 的 blob 在 gc 之前一直在</text>
+  </g>
+
+  <path class="arrow" d="M 174 440 L 174 464"/>
+  <polygon class="arrowhead" points="174,468 169,460 179,460"/>
+
+  <g>
+    <rect class="redbox" x="24" y="472" width="300" height="70" rx="6"/>
+    <text class="stepr" x="40" y="495">6  交叉核对出答案</text>
+    <text class="desc" x="40" y="515">候选地点与照片逐条互证：时间、语言、</text>
+    <text class="desc" x="40" y="531">朝向、地标全部一致才提交</text>
+    <text class="signtitle" x="344" y="488">看点</text>
+    <text class="sign" x="344" y="506">OSINT 线索（时间、地名、设备）</text>
+    <text class="sign" x="344" y="522">并入 M18 的多源关联；</text>
+    <text class="sign" x="344" y="538">与磁盘、内存、流量的结论互相印证</text>
+  </g>
+
+  <g>
+    <rect class="greybox" x="24" y="566" width="512" height="112" rx="6"/>
+    <text class="stepg" x="40" y="590">两条硬红线（贯穿全章）</text>
+    <text class="desc" x="40" y="612">① 只对出题人授权的题目信息做检索：题面、附件、出题人给出的 URL；</text>
+    <text class="desc" x="40" y="630">② 不对真实个人做画像与定位，不骚扰真实账号，不把真实人物照片当解题素材。</text>
+    <text class="desc" x="40" y="652">赛后复盘、发表 writeup 时同样适用。</text>
+  </g>
+</svg>

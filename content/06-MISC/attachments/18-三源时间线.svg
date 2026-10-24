@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="470" viewBox="0 0 800 470" version="1.1">
+  <style>
+    text { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #55534b; }
+    .lane   { font-size: 12px; font-weight: 600; }
+    .ev     { font-size: 10.5px; fill: #55534b; }
+    .tick   { font-size: 10.5px; fill: #8a8779; }
+    .verify { font-size: 10.5px; font-weight: 600; fill: #d23f3f; }
+    .dotb   { fill: #e6f1fb; stroke: #378add; stroke-width: 1.4; }
+    .dotr   { fill: #fcebeb; stroke: #e24b4a; stroke-width: 1.4; }
+    .dotg   { fill: #f1efe8; stroke: #b4b2a9; stroke-width: 1.4; }
+    .axis   { stroke: #b4b2a9; stroke-width: 1.4; }
+    .tie    { stroke: #b4b2a9; stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+  </style>
+
+  <rect x="0" y="0" width="800" height="470" fill="#fcfcfb"/>
+
+  <!-- 泳道标题 -->
+  <text class="lane" x="20" y="96" style="fill:#2b6ea8">内存</text>
+  <text class="lane" x="20" y="206" style="fill:#d23f3f">磁盘</text>
+  <text class="lane" x="20" y="316" style="fill:#6d6a60">流量</text>
+
+  <!-- 泳道分隔 -->
+  <line class="axis" x1="50" y1="52" x2="50" y2="352" stroke-dasharray="2 4"/>
+  <line class="axis" x1="790" y1="52" x2="790" y2="352" stroke-dasharray="2 4"/>
+
+  <!-- 互证竖线：02:31:51 -->
+  <line class="tie" x1="107" y1="70" x2="107" y2="352"/>
+  <text class="verify" x="60" y="66">互证① 02:31:51</text>
+  <!-- 互证竖线：02:44:16 -->
+  <line class="tie" x1="510" y1="70" x2="510" y2="352"/>
+  <text class="verify" x="452" y="66">互证② 02:44:16</text>
+  <!-- 互证竖线：02:45:20 -->
+  <line class="tie" x1="656" y1="70" x2="656" y2="352"/>
+  <text class="verify" x="664" y="66">互证③ 02:45:20</text>
+
+  <!-- 内存泳道 -->
+  <circle class="dotb" cx="107" cy="92" r="5"/>
+  <text class="ev" x="116" y="88">Run 键写入 KB00207877.exe</text>
+  <text class="ev" x="116" y="102">cridex1.exe 执行（UserAssist）</text>
+  <rect x="270" y="112" width="206" height="14" fill="#e6f1fb" stroke="#378add" stroke-width="1"/>
+  <text class="ev" x="276" y="123">重启后启动序列 02:42:31 - 02:44:01</text>
+  <circle class="dotb" cx="476" cy="92" r="5"/>
+  <text class="ev" x="330" y="96">wuauclt（PID 1588）启动　02:44:01</text>
+
+  <!-- 磁盘泳道 -->
+  <circle class="dotr" cx="102" cy="202" r="5"/>
+  <text class="ev" x="60" y="230">stage/kb00207877.bin mtime 02:31:50</text>
+  <circle class="dotr" cx="107" cy="202" r="5"/>
+  <text class="ev" x="116" y="198">日志：deliver 投递给 10.13.0.2　02:31:51</text>
+  <circle class="dotr" cx="496" cy="202" r="5"/>
+  <text class="ev" x="416" y="230">logs/ 目录 mtime 02:44:10</text>
+  <circle class="dotr" cx="510" cy="202" r="5"/>
+  <text class="ev" x="518" y="198">日志：check-in 记录　02:44:16</text>
+  <circle class="dotr" cx="656" cy="202" r="5"/>
+  <text class="ev" x="560" y="230">日志：upload 884 B + xor 密钥 02:45:20</text>
+  <circle class="dotr" cx="704" cy="202" r="5"/>
+  <text class="ev" x="640" y="198">handler.log 最后写入 02:45:41</text>
+  <circle class="dotr" cx="747" cy="202" r="5"/>
+  <text class="ev" x="700" y="230">cleanup.sh 02:46:00</text>
+
+  <!-- 流量泳道 -->
+  <circle class="dotg" cx="505" cy="312" r="5"/>
+  <text class="ev" x="394" y="340">DNS cv-update.example.com = 41.168.5.140 02:44:14</text>
+  <circle class="dotg" cx="510" cy="312" r="5"/>
+  <text class="ev" x="518" y="308">GET /zb/v_01_a/in/cp.php 02:44:16</text>
+  <circle class="dotg" cx="656" cy="312" r="5"/>
+  <text class="ev" x="540" y="340">POST /zb/v_01_a/in/up.php 02:45:20</text>
+  <text class="ev" x="40" y="340">（噪声：www.example.com 02:44:00）</text>
+
+  <!-- 时间轴 -->
+  <line class="axis" x1="55" y1="380" x2="770" y2="380"/>
+  <polygon points="778,380 770,376 770,384" fill="#b4b2a9"/>
+  <!-- 压缩区间记号 -->
+  <line class="axis" x1="150" y1="372" x2="200" y2="388"/>
+  <text class="tick" x="152" y="404">02:32 - 02:42（静默，压缩）</text>
+  <g font-size="10.5" fill="#8a8779">
+    <text x="94" y="368">02:31:50</text>
+    <text x="99" y="396">02:31:51</text>
+    <text x="248" y="368">02:42:31</text>
+    <text x="454" y="368">02:44:01</text>
+    <text x="483" y="396">02:44:14</text>
+    <text x="634" y="368">02:45:20</text>
+    <text x="722" y="396">02:46:00</text>
+  </g>
+
+  <text class="ev" x="20" y="446" style="fill:#8a8779">分段刻度：感染时刻与回连窗口各自展开，中间两分钟静默压缩；三条泳道的竖直虚线是三处跨源互证。</text>
+</svg>

@@ -1541,5 +1541,5 @@ curl -s --noproxy '*' "http://127.0.0.1:8408/?id=-1'%20union%20select%201,2,flag
 - MariaDB 官方文档的 SQL 语句与函数参考（mariadb.com/kb）：`extractvalue`、`sleep`、`INTO OUTFILE`、`secure_file_priv` 的权威语义都在这里，方言疑问以此为准；
 - sqlmap 官方文档（sqlmap.org 的 Usage 一节）：`--technique`、`--level/--risk`、tamper 的完整选项与自带脚本库（`tamper/` 目录里 90 多个现成脚本，命名即用途，读几个就知道结构）；
 - PayloadsAllTheThings 的 SQL Injection 篇（GitHub）：按数据库与注入类型整理的 payload 速查，本章手法之外的变体（WAF 高级绕过、NoSQL 注入）从这里续；
-- 工具与平台索引见 [[03-工具清单|05-资源索引·工具清单]] 与 [[01-练习平台索引|05-资源索引·练习平台]]；
+- 工具与平台索引见 [[03-工具清单|08-资源索引·工具清单]] 与 [[01-练习平台索引|08-资源索引·练习平台]]；
 - 下一站：[[W05-命令注入与代码执行|W05]] 接本章 7.3 节的 getshell 之后——拿到命令执行还能做什么；[[W03-信息泄露与前端安全|W03]] 的报错页与注释泄露是本章报错注入的信息面前置。

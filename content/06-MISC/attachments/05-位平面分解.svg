@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="380" viewBox="0 0 880 380" font-family="sans-serif">
+  <rect x="0" y="0" width="880" height="380" fill="#FCFCFB"/>
+  <text x="24" y="32" font-size="15" font-weight="bold" fill="#333333">位平面分解：一个字节拆成八张图</text>
+
+  <!-- 左：一个像素字节的位结构 -->
+  <rect x="20" y="52" width="330" height="238" rx="8" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="185" y="80" font-size="12" fill="#555555" text-anchor="middle">一个灰度像素的字节</text>
+  <text x="185" y="104" font-size="15" font-weight="bold" fill="#333333" text-anchor="middle">182 = 1011 0110₂</text>
+
+  <!-- 位标签 -->
+  <text x="45"  y="126" font-size="10" fill="#777777" text-anchor="middle">b7</text>
+  <text x="85"  y="126" font-size="10" fill="#777777" text-anchor="middle">b6</text>
+  <text x="125" y="126" font-size="10" fill="#777777" text-anchor="middle">b5</text>
+  <text x="165" y="126" font-size="10" fill="#777777" text-anchor="middle">b4</text>
+  <text x="205" y="126" font-size="10" fill="#777777" text-anchor="middle">b3</text>
+  <text x="245" y="126" font-size="10" fill="#777777" text-anchor="middle">b2</text>
+  <text x="285" y="126" font-size="10" fill="#777777" text-anchor="middle">b1</text>
+  <text x="325" y="126" font-size="10" fill="#777777" text-anchor="middle">b0</text>
+
+  <!-- 位值单元格：182 = 1 0 1 1 0 1 1 0 -->
+  <rect x="27"  y="132" width="36" height="36" rx="4" fill="#E6F1FB" stroke="#378ADD"/><text x="45"  y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">1</text>
+  <rect x="67"  y="132" width="36" height="36" rx="4" fill="#FCFCFB" stroke="#B4B2A9"/><text x="85"  y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">0</text>
+  <rect x="107" y="132" width="36" height="36" rx="4" fill="#E6F1FB" stroke="#378ADD"/><text x="125" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">1</text>
+  <rect x="147" y="132" width="36" height="36" rx="4" fill="#E6F1FB" stroke="#378ADD"/><text x="165" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">1</text>
+  <rect x="187" y="132" width="36" height="36" rx="4" fill="#FCFCFB" stroke="#B4B2A9"/><text x="205" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">0</text>
+  <rect x="227" y="132" width="36" height="36" rx="4" fill="#E6F1FB" stroke="#378ADD"/><text x="245" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">1</text>
+  <rect x="267" y="132" width="36" height="36" rx="4" fill="#E6F1FB" stroke="#378ADD"/><text x="285" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">1</text>
+  <rect x="307" y="132" width="36" height="36" rx="4" fill="#FCFCFB" stroke="#B4B2A9"/><text x="325" y="156" font-size="14" font-weight="bold" fill="#333333" text-anchor="middle">0</text>
+
+  <!-- 权重 -->
+  <text x="45"  y="186" font-size="11" fill="#777777" text-anchor="middle">128</text>
+  <text x="85"  y="186" font-size="11" fill="#777777" text-anchor="middle">64</text>
+  <text x="125" y="186" font-size="11" fill="#777777" text-anchor="middle">32</text>
+  <text x="165" y="186" font-size="11" fill="#777777" text-anchor="middle">16</text>
+  <text x="205" y="186" font-size="11" fill="#777777" text-anchor="middle">8</text>
+  <text x="245" y="186" font-size="11" fill="#777777" text-anchor="middle">4</text>
+  <text x="285" y="186" font-size="11" fill="#777777" text-anchor="middle">2</text>
+  <text x="325" y="186" font-size="11" fill="#777777" text-anchor="middle">1</text>
+
+  <text x="185" y="216" font-size="12" fill="#555555" text-anchor="middle">128 + 32 + 16 + 4 + 2 = 182</text>
+  <text x="185" y="244" font-size="12" fill="#555555" text-anchor="middle">高位翻转：明暗跳一大截</text>
+  <text x="185" y="266" font-size="12" fill="#E24B4A" text-anchor="middle">低位 ±1：亮度差仅 1/256</text>
+
+  <!-- 箭头 -->
+  <text x="378" y="160" font-size="11" fill="#777777" text-anchor="middle">按位拆开</text>
+  <line x1="360" y1="172" x2="396" y2="172" stroke="#B4B2A9" stroke-width="2"/>
+  <polygon points="396,167 404,172 396,177" fill="#B4B2A9"/>
+
+  <!-- 右：八张位平面卡片 -->
+  <rect x="412" y="56"  width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="426" y="78"  font-size="12" font-weight="bold" fill="#333333">bit7 平面　权重 128</text>
+  <text x="426" y="98"  font-size="11" fill="#666666">大面积明暗、物体轮廓</text>
+
+  <rect x="412" y="124" width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="426" y="146" font-size="12" font-weight="bold" fill="#333333">bit6 平面　权重 64</text>
+  <text x="426" y="166" font-size="11" fill="#666666">画面主要结构</text>
+
+  <rect x="412" y="192" width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="426" y="214" font-size="12" font-weight="bold" fill="#333333">bit5 平面　权重 32</text>
+  <text x="426" y="234" font-size="11" fill="#666666">明暗过渡与细节</text>
+
+  <rect x="412" y="260" width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="426" y="282" font-size="12" font-weight="bold" fill="#333333">bit4 平面　权重 16</text>
+  <text x="426" y="302" font-size="11" fill="#666666">中间调纹理</text>
+
+  <rect x="648" y="56"  width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="662" y="78"  font-size="12" font-weight="bold" fill="#333333">bit3 平面　权重 8</text>
+  <text x="662" y="98"  font-size="11" fill="#666666">细纹理，肉眼开始难辨</text>
+
+  <rect x="648" y="124" width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="662" y="146" font-size="12" font-weight="bold" fill="#333333">bit2 平面　权重 4</text>
+  <text x="662" y="166" font-size="11" fill="#666666">噪点级</text>
+
+  <rect x="648" y="192" width="220" height="56" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+  <text x="662" y="214" font-size="12" font-weight="bold" fill="#333333">bit1 平面　权重 2</text>
+  <text x="662" y="234" font-size="11" fill="#666666">噪点级</text>
+
+  <rect x="648" y="260" width="220" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
+  <text x="662" y="282" font-size="12" font-weight="bold" fill="#333333">bit0 平面（LSB）　权重 1</text>
+  <text x="662" y="302" font-size="11" fill="#E24B4A">隐写写这里：±1，亮度差 1/256</text>
+
+  <text x="24" y="352" font-size="11" fill="#777777">把每位单独放大成 0/255 的灰度图，就是位平面分解；低平面上出现规则的图案或文字，是藏了东西的直接信号。</text>
+</svg>
