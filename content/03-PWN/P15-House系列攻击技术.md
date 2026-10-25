@@ -662,7 +662,7 @@ if ((unsigned long) (size) < (unsigned long) chunksize_nomask (bck->bk))
   }
 ```
 
-逐行读：`fwd->fd` 是 bin 里当前最小的块（记作 A）；第二行赋值把 ==A 的 bk_nextsize== 读进 victim；最后一行连等号的右半 `victim->bk_nextsize->fd_nextsize = victim` 解引用刚读来的值写入。==写入发生在刚插入的块身上，伪造却要下在先住进 bin 的 A 身上==——把 A 的 bk_nextsize 改成 `目标 − 0x20`，最后一行就把 victim 的 chunk 地址写进目标。fd_nextsize 在 chunk + 0x20、bk_nextsize 在 + 0x28（[[P12-glibc堆管理机制#2. chunk：管理器的账本|P12 第 2 节]]的字段布局），`目标 − 0x20` 正是让 fake 块的 fd_nextsize 槽落在目标上。
+逐行读：`fwd->fd` 是 bin 里当前最小的块（记作 A）；第二行赋值把 ==A 的 bk_nextsize== 读进 victim；最后一行连等号的右半 `victim->bk_nextsize->fd_nextsize = victim` 解引用刚读来的值写入。==写入发生在刚插入的块身上，伪造却要下在先住进 bin 的 A 身上==——把 A 的 bk_nextsize 改成 `目标 − 0x20`，最后一行就把 victim 的 chunk 地址写进目标。fd_nextsize 在 chunk + 0x20、bk_nextsize 在 + 0x28（[[P12-glibc堆管理机制#2. chunk：堆内存的基本单位|P12 第 2 节]]的字段布局），`目标 − 0x20` 正是让 fake 块的 fd_nextsize 槽落在目标上。
 
 写进赋值上方的核对（`fwd->fd->bk_nextsize->fd_nextsize != fwd->fd`）是 2.43 里真实生效的检查：它解引用伪造值，要求 fake 块的 fd_nextsize 指回 A。8.3 的演示用"预填"应付它，8.4 的对照组展示不预填的下场。
 

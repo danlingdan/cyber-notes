@@ -14,7 +14,7 @@ publish: true
 
 > [!info]- 章节信息
 > **所属方向**：MISC ｜ **难度阶段**：L4 高级期 ｜ **前置要求**：[[M01-MISC导论与工具箱|M01]] · [[M16-脑洞与算法杂项|M16]]
-> **本章目标**：进入 MISC 里唯一一类"证据在附件之外"的题：OSINT（开源情报）与地理定位。分清四类题型与合规边界；把 EXIF GPS 从读坐标、度分秒换算到地图核对的流程走通（离线部分全部现场造靶）；立起地理定位的旁证比对清单，离线可算的太阳方位角配公式与脚本；搜索引擎运算符与 git 历史检索（离线全流程）；最后从出题视角看自造 OSINT 靶的构造，并与 [[M18-取证综合-多源关联|M18]] 的多源关联衔接。
+> **本章目标**：进入 MISC 里唯一一类"证据在附件之外"的题：OSINT（开源情报）与地理定位。分清四类题型与合规边界；把 EXIF GPS 从读坐标、度分秒换算到地图核对的流程走通（离线部分全部现场造靶）；立起地理定位的旁证比对清单，离线可算的太阳方位角配公式与脚本；搜索引擎运算符与 git 历史检索（离线全流程）；再造一个虚构身份的档案包，把 EXIF 读取、时间线交叉、用户名枚举到反向搜图与网页存档的交叉检索完整跟做一遍（第 5 节）；最后从出题视角看自造 OSINT 靶的构造，并与 [[M18-取证综合-多源关联|M18]] 的多源关联衔接。
 
 ## 1. 定位：从附件内部到开放情报
 
@@ -562,9 +562,404 @@ git grep "flag{" $(git rev-list --all)
 > [!warning] 三个检索不到的去处
 > 一是 pack 文件：仓库执行过 gc 后松散对象合并进 `.git/objects/pack/*.pack`，`find .git/objects -type f` 看不到散文件，`git log -p` 与 `git grep` 不受影响——优先用 git 命令而不是手工翻目录。二是非当前分支：`git rev-list --all` 覆盖所有分支，但 `git diff HEAD~1` 只在当前分支上走，多分支的靶先用 `git log --all --oneline` 看全貌。三是 reflog：`.git/logs/HEAD` 记录分支指向的历次变化，提交被重写后旧提交仍可能从 reflog 找到哈希（`git log -g --oneline`）。
 
-## 5. 出题视角：自造靶与多源关联
+## 5. 实操：自造档案包的交叉检索
 
-### 5.1 自造 OSINT 靶的构造
+前面四节给了四类题型的入口与公式，这一节把它们串成一条完整的跟做线。靶子现场造：一个虚构身份的本地档案包——几页静态 HTML、三张图片、一个本地起服务的"账号平台"。目标只有一个：==从档案包里解出完整的 flag==。离线步骤逐条给命令与输出，两处纯在线技能（反向搜图、网页存档）只给操作流程（5.5）。
+
+> [!note] 靶子与合规
+> 档案包里的身份、站点、照片、坐标全部为教学自造（域名落在保留后缀 `.example`，不会解析到真实站点），对应 1.2 表格里"自造信息"一列。跟做时把手法指向任何真实个人都越过了 1.2 的红线。
+
+### 5.1 造靶：虚构身份的档案包
+
+造靶脚本 make_dossier.py 做三件事：用 PIL 生成三张无元数据的图片（两张"照片"、一张头像）；写出六页 HTML（主页、行程表、两篇帖子、图库页、一个账号页）；在图库页 footer 埋一个用户名。账号页不挂任何链接，只能靠检索找到。完整脚本在下方折叠框里，跑完的目录结构如下：
+
+```bash
+python3 make_dossier.py
+```
+
+输出：
+
+```
+dossier/gallery/photo-0502.jpg (640, 480)
+dossier/gallery/photo-0520.jpg (640, 480)
+dossier/gallery/avatar.png (160, 160)
+dossier/index.html
+dossier/travel.html
+dossier/posts/2026-05-02.html
+dossier/posts/2026-05-20.html
+dossier/gallery/index.html
+dossier/profile/linan_ridge/index.html
+```
+
+```bash
+find dossier -type f | sort
+```
+
+输出：
+
+```
+dossier/gallery/avatar.png
+dossier/gallery/index.html
+dossier/gallery/photo-0502.jpg
+dossier/gallery/photo-0520.jpg
+dossier/index.html
+dossier/posts/2026-05-02.html
+dossier/posts/2026-05-20.html
+dossier/profile/linan_ridge/index.html
+dossier/travel.html
+```
+
+再用 2.2 的写法给两张照片写入 EXIF——坐标、时刻、时区偏移、设备型号；photo-0502.jpg 的 ImageDescription 额外写进半截 flag：
+
+```bash
+exiftool -overwrite_original \
+  -GPSLatitudeRef=N -GPSLatitude#=31.230400 \
+  -GPSLongitudeRef=E -GPSLongitude#=121.473700 \
+  -GPSAltitude#=6.5 \
+  -DateTimeOriginal="2026:05:02 06:12:45" -OffsetTimeOriginal="+08:00" \
+  -Model="Ridge Cam S2" -ImageDescription="flag{cr0ss_ref_" \
+  dossier/gallery/photo-0502.jpg
+
+exiftool -overwrite_original \
+  -GPSLatitudeRef=N -GPSLatitude#=30.572800 \
+  -GPSLongitudeRef=E -GPSLongitude#=104.066800 \
+  -DateTimeOriginal="2026:05:20 19:05:30" -OffsetTimeOriginal="+08:00" \
+  -Model="Ridge Cam S2" \
+  dossier/gallery/photo-0520.jpg
+```
+
+输出：
+
+```
+    1 image files updated
+    1 image files updated
+```
+
+> [!info]- 造靶脚本 make_dossier.py 全文
+> ```python
+> # make_dossier.py -- 造一个虚构身份的本地档案包（全部素材自造，不存在真实个人）
+> import os
+> from PIL import Image, ImageDraw
+>
+> SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dossier")
+>
+>
+> def show(p):
+>     return os.path.relpath(p, os.path.dirname(SITE))
+>
+>
+> def photo(path, size, blocks, quality=92):
+>     im = Image.new("RGB", size, (252, 252, 251))
+>     d = ImageDraw.Draw(im)
+>     for box, color in blocks:
+>         d.rectangle(box, fill=color)
+>     os.makedirs(os.path.dirname(path), exist_ok=True)
+>     im.save(path, quality=quality)
+>     print(show(path), im.size)
+>
+>
+> def page(rel, body):
+>     p = os.path.join(SITE, rel)
+>     os.makedirs(os.path.dirname(p), exist_ok=True)
+>     with open(p, "w", encoding="utf-8") as f:
+>         f.write(body)
+>     print(show(p))
+>
+>
+> # 三张图：两张"照片" + 一张头像
+> photo(f"{SITE}/gallery/photo-0502.jpg", (640, 480),
+>       [((60, 200, 300, 320), (230, 150, 90)), ((330, 260, 560, 330), (90, 140, 200))])
+> photo(f"{SITE}/gallery/photo-0520.jpg", (640, 480),
+>       [((80, 120, 560, 200), (70, 120, 90)), ((140, 260, 500, 340), (200, 180, 120))])
+> photo(f"{SITE}/gallery/avatar.png", (160, 160), [((20, 20, 140, 140), (55, 138, 221))])
+>
+> page("index.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>岭上小筑 · 旅行与摄影</title></head>
+> <body>
+> <h1>岭上小筑</h1>
+> <p>记录路上的光。相机：Ridge Cam S2。</p>
+> <ul>
+>   <li><a href="posts/2026-05-02.html">清晨，天刚亮</a></li>
+>   <li><a href="posts/2026-05-20.html">江边的傍晚</a></li>
+> </ul>
+> <p><a href="travel.html">行程</a> · <a href="gallery/index.html">图库</a></p>
+> </body>
+> </html>
+> """)
+>
+> page("travel.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>行程</title></head>
+> <body>
+> <h1>2026 年行程</h1>
+> <table border="1">
+> <tr><th>日期</th><th>方向</th><th>手记</th></tr>
+> <tr><td>05-01 ~ 05-03</td><td>东</td><td>沿海，看清晨的江面</td></tr>
+> <tr><td>05-19 ~ 05-22</td><td>西</td><td>山与江，傍晚的渡口</td></tr>
+> </table>
+> </body>
+> </html>
+> """)
+>
+> page("posts/2026-05-02.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>清晨，天刚亮</title></head>
+> <body>
+> <h1>清晨，天刚亮</h1>
+> <p>天刚亮就出了门，江面还在起雾。快门按下的时间比闹钟还早。</p>
+> <p><a href="../index.html">回主页</a></p>
+> </body>
+> </html>
+> """)
+>
+> page("posts/2026-05-20.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>江边的傍晚</title></head>
+> <body>
+> <h1>江边的傍晚</h1>
+> <p>傍晚的江边，渡口亮灯之前按下最后一张。</p>
+> <p><a href="../index.html">回主页</a></p>
+> </body>
+> </html>
+> """)
+>
+> page("gallery/index.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>图库</title></head>
+> <body>
+> <h1>图库</h1>
+> <p><img src="photo-0502.jpg" width="320" alt="清晨"> <img src="photo-0520.jpg" width="320" alt="傍晚"></p>
+> <p><a href="../index.html">回主页</a></p>
+> <footer>© 2026 linan_ridge</footer>
+> </body>
+> </html>
+> """)
+>
+> page("profile/linan_ridge/index.html", """<!DOCTYPE html>
+> <html lang="zh">
+> <head><meta charset="utf-8"><title>linan_ridge</title></head>
+> <body>
+> <h1>linan_ridge</h1>
+> <p>岭上小筑的作者。下个月去更西边。</p>
+> <p>相册兑换码：t1mel1ne_0s1nt}</p>
+> </body>
+> </html>
+> """)
+> ```
+
+### 5.2 第一步：把附件自身的信息读全
+
+[[M01-MISC导论与工具箱|M01]] 的固定动作清单先走一遍，对图片就是 2.2 的读法。读 GPS 用 `-a -G1 -gps:all`：
+
+```bash
+cd dossier/gallery
+exiftool -a -G1 -gps:all photo-0502.jpg
+```
+
+输出：
+
+```
+[GPS]           GPS Version ID                  : 2.3.0.0
+[GPS]           GPS Latitude Ref                : North
+[GPS]           GPS Latitude                    : 31 deg 13' 49.44"
+[GPS]           GPS Longitude Ref               : East
+[GPS]           GPS Longitude                   : 121 deg 28' 25.32"
+[GPS]           GPS Altitude                    : 6.5 m
+```
+
+GPS 之外还要看伴随字段：`-s` 加字段名，一次读出坐标、时刻、时区、设备与 Description——半截 flag 就落在这里：
+
+```bash
+exiftool -s -GPSPosition -DateTimeOriginal -OffsetTimeOriginal -Model -ImageDescription photo-0502.jpg
+```
+
+输出：
+
+```
+GPSPosition                     : 31 deg 13' 49.44" N, 121 deg 28' 25.32" E
+DateTimeOriginal                : 2026:05:02 06:12:45
+OffsetTimeOriginal              : +08:00
+Model                           : Ridge Cam S2
+ImageDescription                : flag{cr0ss_ref_
+```
+
+坐标要交给地图服务时用 2.3 的换算，或直接让 exiftool 输出十进制（`-n`），两张照片一起读：
+
+```bash
+exiftool -n -GPSPosition -DateTimeOriginal photo-0502.jpg
+exiftool -n -GPSPosition -DateTimeOriginal photo-0520.jpg
+```
+
+输出：
+
+```
+GPS Position                    : 31.2304 121.4737
+Date/Time Original              : 2026:05:02 06:12:45
+
+GPS Position                    : 30.5728 104.0668
+Date/Time Original              : 2026:05:20 19:05:30
+```
+
+对照检查头像是好习惯：avatar.png 没有被写过元数据，exiftool 只剩文件系统信息与 PNG 结构参数，和 2.5 剥离后的状态一致：
+
+```bash
+exiftool avatar.png | head -6
+```
+
+输出：
+
+```
+ExifTool Version Number         : 13.50
+File Name                       : avatar.png
+Directory                       : .
+File Size                       : 481 bytes
+File Modification Date/Time     : 2026:10:25 17:24:21+08:00
+File Access Date/Time           : 2026:10:25 17:24:21+08:00
+```
+
+### 5.3 第二步：时间线与地点线索交叉
+
+附件读全之后，把页面文本拉进同一张表。行程页 travel.html 只给了方向与日期，帖子只给了场景描述，都==没有直接出现地名==：
+
+| 时间 | 来源 | 线索 |
+| ---- | ---- | ---- |
+| 05-01 ~ 05-03，方向"东" | travel.html | "沿海，看清晨的江面" |
+| 05-02 06:12:45，东经 121.47 度 | photo-0502.jpg EXIF | ImageDescription 里有半截 flag |
+| 05-02 清晨 | posts/2026-05-02.html | "天刚亮就出了门，江面还在起雾" |
+| 05-19 ~ 05-22，方向"西" | travel.html | "山与江，傍晚的渡口" |
+| 05-20 19:05:30，东经 104.07 度 | photo-0520.jpg EXIF | —— |
+| 05-20 傍晚 | posts/2026-05-20.html | "渡口亮灯之前按下最后一张" |
+
+两组线索互相咬合：05-02 那张照片落在"东行"的日期区间里，坐标在东部沿海经度带；05-20 那张落在"西行"区间，经度 104 度一带。EXIF 的拍摄时刻还能和帖子文案做自洽校验——按 3.2 的公式算这两天的昼长与日出日落，再看 06:12 与 19:05 是否落在日照区间内：
+
+```python
+# sun_check.py -- 按日期、纬度、经度核对 EXIF 拍摄时刻是否自洽
+import math
+
+
+def sun_info(lat_deg, n):
+    """纬度 lat_deg（北为正）、一年中第 n 天：昼长 / 日出方位 / 日落方位 / 赤纬"""
+    phi = math.radians(lat_deg)
+    delta = math.radians(23.45) * math.sin(math.radians(360 * (284 + n) / 365))
+    omega0 = math.acos(max(-1.0, min(1.0, -math.tan(phi) * math.tan(delta))))
+    daylen = 2 * math.degrees(omega0) / 15
+    a_rise = math.degrees(math.acos(max(-1.0, min(1.0, math.sin(delta) / math.cos(phi)))))
+    return daylen, a_rise, 360 - a_rise, math.degrees(delta)
+
+
+def clock(t):
+    t %= 24
+    return f"{int(t):02d}:{int(round((t - int(t)) * 60)):02d}"
+
+
+# (照片, 纬度, 经度, 一年中第几天, EXIF 拍摄时刻)
+trips = [
+    ("photo-0502", 31.2304, 121.4737, 122, "06:12:45"),
+    ("photo-0520", 30.5728, 104.0668, 140, "19:05:30"),
+]
+for name, lat, lon, n, exif in trips:
+    daylen, rise, sett, delta = sun_info(lat, n)
+    noon = 12 - lon / 15 + 8          # 钟面正午 = 12:00 - 经度时差 + 东八区
+    hh, mm = int(daylen), int(round((daylen - int(daylen)) * 60))
+    print(f"{name}: 赤纬 {delta:+.2f} 度, 昼长 {hh} 小时 {mm} 分, "
+          f"日出方位 {rise:.1f} 度, 日落方位 {sett:.1f} 度")
+    print(f"  日出/日落钟面时刻约 {clock(noon - daylen / 2)} / {clock(noon + daylen / 2)}，"
+          f"EXIF 拍摄时刻 {exif}")
+```
+
+```bash
+python3 sun_check.py
+```
+
+输出：
+
+```
+photo-0502: 赤纬 +15.21 度, 昼长 13 小时 16 分, 日出方位 72.1 度, 日落方位 287.9 度
+  日出/日落钟面时刻约 05:16 / 18:32，EXIF 拍摄时刻 06:12:45
+photo-0520: 赤纬 +19.93 度, 昼长 13 小时 39 分, 日出方位 66.7 度, 日落方位 293.3 度
+  日出/日落钟面时刻约 06:14 / 19:53，EXIF 拍摄时刻 19:05:30
+```
+
+两组都自洽：05-02 的 06:12 落在日出（约 05:16）之后一小时内，与"天刚亮"对上；05-20 的 19:05 落在日落（约 19:53）之前，与"渡口亮灯之前"对上。==时间、坐标、文案三条来源互相不矛盾，交叉结果才可采信==；任何一条对不上，先怀疑自己读错了字段（比如把本地时间当成 UTC）。
+
+> [!info]- 反过来用：由时刻缩经度带
+> 这一步也可以倒着做：照片画面显示日出时分、EXIF 写着 06:12，那么拍摄地在当天约 06:12 日出的经度带内（2.5 的折叠框）。跟做时不妨先把两张照片的坐标遮住，只凭时刻与文案推经度带，再拿坐标对答案。
+
+### 5.4 第三步：用户名枚举
+
+时间线之外，账号是虚构身份的另一类碎片。站内没有直接给出账号页链接，但 5.1 埋了一处：图库页 footer 写着 `© 2026 linan_ridge`——用户名到手。账号页在站内的路径格式未知，按常见格式逐个试探，存在返回 200、不存在返回 404：
+
+```python
+# probe_username.py -- 对本地站点做用户名枚举：逐个试 /profile/<name>/ 是否存在
+import urllib.error
+import urllib.request
+
+BASE = "http://127.0.0.1:8000/profile/"
+candidates = ["admin", "root", "test", "webmaster", "linan", "ridge", "linan_ridge"]
+
+for name in candidates:
+    try:
+        with urllib.request.urlopen(BASE + name + "/", timeout=3) as r:
+            print(f"{name:14s} HTTP {r.status}   <- 存在")
+    except urllib.error.HTTPError as e:
+        print(f"{name:14s} HTTP {e.code}")
+```
+
+在档案包目录起一个静态服务，再跑枚举：
+
+```bash
+cd dossier
+python3 -m http.server 8000
+# 另开一个终端：
+python3 probe_username.py
+```
+
+输出：
+
+```
+admin          HTTP 404
+root           HTTP 404
+test           HTTP 404
+webmaster      HTTP 404
+linan          HTTP 404
+ridge          HTTP 404
+linan_ridge    HTTP 200   <- 存在
+```
+
+只有 `linan_ridge` 命中。访问账号页，拿到 flag 的后半段，与前半拼接：
+
+```bash
+curl -s http://127.0.0.1:8000/profile/linan_ridge/ | grep 兑换
+```
+
+输出：
+
+```
+<p>相册兑换码：t1mel1ne_0s1nt}</p>
+```
+
+完整 flag：`flag{cr0ss_ref_t1mel1ne_0s1nt}`——前半在照片的 ImageDescription（5.2），后半在用户名枚举找到的账号页（本节），中间的路径靠时间线交叉（5.3）确认档案包里确实只有一个虚构身份、没有干扰账号。
+
+> [!info]- 真实平台的批量枚举工具
+> 比赛现场对出题人自建的平台，思路与本节相同：收集站内出现过的用户名（footer、署名、图片作者字段），按平台的个人页路径格式批量探测。sherlock、maigret 这类开源工具内置了几百个真实平台各自的路径模板，输入一个用户名就能批量查一遍——注意它们查的是真实平台，1.2 的红线原样适用：只查题目授权的对象，不骚扰真实账号。
+
+### 5.5 现场技能：反向搜图与网页存档
+
+> [!note] 在线步骤：需要联网，不配输出
+> 这两类动作依赖在线服务，无法离线复现，只记录操作流程。
+
+反向搜图，找源头与确认照片是否被搬运：常用服务有 Google Lens、Bing 视觉搜索、Yandex 图片（三者索引面不同，重要场合轮着用）。操作流程：把图片裁出信息量最高的区域（招牌、地标、人脸之外的特征物）再上传，比整图上传的命中率高；结果按"完全相同的图"与"视觉相似"两类看，前者找原图出处，后者找同一场景的其他拍摄。比赛里的典型用途：确认出题人给的照片是自造素材还是网上搬运的既有素材，若是后者，原图页面往往带着地点或原始标题。
+
+网页存档，找文件版本类的在线形态：Wayback Machine（web.archive.org）与 archive.today 是两个常用存档站，前者按时间线保留多次快照，后者单页存档、更新即时。操作流程：把题面给出的 URL 粘进存档站的查询框，看历史快照列表，逐个比对目标内容（页面段落、下载链接、发布时间）的变化；需要保存当前页面时提交存档，拿到可引用的快照链接。比赛里的典型用途：题目只给一个已经改版或下线的页面，历史快照里才有出题人埋的旧版内容——与 4.2 的 git 历史是同一类"找被删改前的版本"，只是对象从仓库换成了网页。
+
+### 5.6 复盘：交叉检索的固定顺序
+
+把这条跟做线收拢成顺序：==先读全附件（EXIF、可见串），再把页面文本排成时间线，然后才出门检索==。三步各自给下一步供弹：附件的 Device 与 OffsetTime 告诉你文案里的"清晨傍晚"可信，时间线告诉你两张照片属于同一个人的两段行程，用户名把检索面从"整站"缩到"一个账号页"。检索出来的每个碎片都要回到 1.1 的判断上：它能不能把答案的范围缩小一格；推不出唯一答案时，按 [[#6.2 识别刻意留下的线索|6.2]] 的检验方法回头再读一遍，而不是靠猜。
+
+## 6. 出题视角：自造靶与多源关联
+
+### 6.1 自造 OSINT 靶的构造
 
 出题人构造 OSINT 靶的常见手法，反过来就是解题者的检查清单：
 
@@ -575,7 +970,7 @@ git grep "flag{" $(git rev-list --all)
 | 自造街景截图 | 用有权素材绘制或拍摄场景 | 3.1 旁证比对 |
 | git 仓库 | 提交历史里预置被删内容 | 4.2 翻历史 |
 
-### 5.2 识别刻意留下的线索
+### 6.2 识别刻意留下的线索
 
 OSINT 题的附件里既有噪声也有线索，区分的依据是**信息量**：
 
@@ -584,11 +979,11 @@ OSINT 题的附件里既有噪声也有线索，区分的依据是**信息量**�
 - 画面里"恰好"完整可读的元素：完整的车牌、完整的招牌、能读出数字的门牌。真实照片里这些通常模糊或残缺，完整可读就是刻意安排；
 - 检验方法：==把候选线索串起来，看能否推出唯一答案==。推不出唯一答案时，大概率还有一条线索没读到，回头把 3.1 清单再过一遍，而不是靠猜。
 
-### 5.3 并入多源关联
+### 6.3 并入多源关联
 
 [[M18-取证综合-多源关联|M18]] 把磁盘、内存、流量的取证结果放在同一条时间线上比对；OSINT 线索是时间线上的另一类事件源——EXIF 的 DateTimeOriginal 对上日志里的登录时间，地名对上流量里 IP 的归属地，设备型号对上内存里进程的运行环境。综合题的收口动作就是这类交叉印证：单一来源的结论允许存疑，两个独立来源指向同一结论才落笔。
 
-## 6. 常见问题
+## 7. 常见问题
 
 | 现象 | 原因与解决 |
 | ---- | ---- |
@@ -602,8 +997,10 @@ OSINT 题的附件里既有噪声也有线索，区分的依据是**信息量**�
 | 日出方位相同，两个半球分不开 | 式 (17.5) 纬度只以 cos 出现，南北同纬度方位角相同；半球用正午影子或植被季节判断（3.2 警告框） |
 | 照片里出现真实人物或真实地点 | 红线检查：先确认是出题人自造素材；无法确认时不做针对真实个人的检索（1.2） |
 | 多张照片的旁证互相矛盾 | 个别冲突常见（旅游区外文招牌、过境车辆）；按可靠度排队取交集，全部冲突才回头检查（3.3） |
+| 枚举个人页全是 404 | 用户名收集不全或路径格式不对：把站内出现用户名的位置找全（footer、署名、图片作者字段），再核对平台的个人页路径格式（5.4） |
+| 在线服务打不开、搜不到结果 | 反向搜图与存档站依赖在线服务，离线做不了（5.5）；先完成离线部分，在线步骤留到有网环境 |
 
-## 7. 配套练习与延伸阅读
+## 8. 配套练习与延伸阅读
 
 配套练习：
 
@@ -612,6 +1009,7 @@ OSINT 题的附件里既有噪声也有线索，区分的依据是**信息量**�
 3. 给 4.2 的仓库加一层变形：开一个分支把 notes.txt 的 flag 改成假 flag 并合并回 main，重跑 `git grep "flag{" $(git rev-list --all)`，观察真假两个版本同时命中——检索历史时按提交时间与提交信息分辨哪个是出题人预置的。
 4. 出一道自造 OSINT 题交换解：构造一张带 EXIF 的照片加一个含三次提交的仓库，flag 拆成两半，一半在照片元数据里，一半在 git 历史里；交换后只允许用本章手法解。
 5. （现场技能练习）用 `site:` 运算符在练习平台的公开题面页里定位某道 MISC 题的官方提示页，体会限定站点的收敛效果。
+6. 给 5.1 的档案包加一层变形：行程表的日期改成只写星期几（比如"周六出发"），时间线交叉必须先查日历；再在 profile 下补两个不挂链接的干扰账号页，交换给同学，只允许用本章手法解出完整 flag。
 
 练习场：
 
@@ -621,6 +1019,7 @@ OSINT 题的附件里既有噪声也有线索，区分的依据是**信息量**�
 
 - [[M18-取证综合-多源关联|M18]]：下一章把本章的 OSINT 线索与磁盘、内存、流量的取证结果并线；
 - [[M19-赛事真题复盘|M19]]：成套真题的复盘，含 OSINT 类题的赛场景；
+- [[raid-restore-master/00-导读|实战案例：阵列恢复大师]]：MISC 取证方向的真实赛题复盘（Hackergame 2021），磁盘阵列还原与本章的多源交叉思路互补；
 - [[W03-信息泄露与前端安全#3. .git 泄露与版本库还原|W03 3 节]]：网站侧 `.git/` 泄露的完整还原流程与对象结构；
 - [[M07-文档与Office隐写|M07]]：文档元数据的字段对照，读 Office 附件时同一套 exiftool 动作；
 - [[03-工具清单|工具清单]]：exiftool 与 git 的安装说明与同类工具。
