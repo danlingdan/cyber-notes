@@ -1126,4 +1126,4 @@ flag{p18_kernel_pwn_first_blood}
 > 2. 在 5.4 的 SMEP 环境里，用 6.1–6.3 的路线把 `commit_creds(&init_cred)` 链完整拼出来，收尾借 `swapgs_restore_regs_and_return_to_usermode` 回用户态拿 shell——这一步做完，Kernel ROP 的基本功就齐了；
 > 3. 做 1–2 道公开的 kernel pwn 入门题。经典起点是 CISCN 2017 的 babydriver（UAF 形态，附件 bzImage/rootfs 公开可查，Buuoj 等国内靶场有复刻）；英文环境的系统化路径推荐 pwn.college 的 kernel security 模块。做题时把本章第 7 节的缓解清单先填一遍再动手。
 
-延伸阅读按需取用：内核源码 `Documentation/`（驱动模型与 `file_operations` 的权威描述）、LWN 上关于 usermodehelper 与 KPTI 的文章、`scripts/extract-vmlinux` 与内核 Kconfig（本章各机制的配置出处）。工具侧，`vmlinux-to-elf` 能从无符号 bzImage 恢复带符号的 vmlinux，`ropper` 与 ROPgadget 同类可换着用。打综合赛程里的内核题与更多平台差异，[[P19-多平台PWN|P19]]；赛事节奏与 AI 辅助实战，[[P21-综合实战赛事策略与AI辅助|P21]]。
+延伸阅读按需取用：内核源码 `Documentation/`（驱动模型与 `file_operations` 的权威描述）、LWN 上关于 usermodehelper 与 KPTI 的文章、`scripts/extract-vmlinux` 与内核 Kconfig（本章各机制的配置出处）。工具侧，`vmlinux-to-elf` 能从无符号 bzImage 恢复带符号的 vmlinux，`ropper` 与 ROPgadget 同类可换着用。打综合赛程里的内核题与更多平台差异，[[P20-多平台PWN|P20]]；赛事节奏与 AI 辅助实战，[[P22-综合实战赛事策略与AI辅助|P22]]。

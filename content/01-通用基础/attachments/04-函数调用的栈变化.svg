@@ -1,69 +1,130 @@
-<svg viewBox="0 0 720 372" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
-  <title>函数调用的栈变化</title>
-  <desc>call 到 ret 四个阶段：call 压入返回地址；push rbp 保存调用者帧指针；sub rsp 开辟局部变量区；leave ret 回收栈帧并跳回调用者。</desc>
+<svg viewBox="0 0 1180 620" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+  <title>函数调用时的栈变化</title>
+  <desc>四个阶段展示 call 压入返回地址、push rbp 保存调用者帧指针、sub rsp 预留栈空间，以及 leave 和 ret 恢复栈帧并返回。</desc>
   <defs>
-    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#888780"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#378ADD"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#E24B4A"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="720" height="372" rx="12" fill="#FCFCFB" stroke="#E3E2DE" stroke-width="1"/>
+  <rect x="1" y="1" width="1178" height="618" rx="18" fill="#FCFCFB" stroke="#E3E2DE" stroke-width="2"/>
+  <text x="40" y="48" font-size="27" font-weight="700" fill="#2C2C2A">函数调用时，栈如何变化</text>
+  <text x="40" y="78" font-size="15" fill="#5F5E5A">典型示意：call → 保存 rbp → 预留栈空间 → 返回。地址从上到下递减，栈向低地址生长。</text>
 
-  <text x="40" y="44" font-size="14" font-weight="500" fill="#2C2C2A">一次函数调用的栈变化（高地址在上，栈向低地址生长）</text>
+  <line x1="54" y1="196" x2="54" y2="432" stroke="#888780" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <text x="54" y="182" font-size="12" fill="#5F5E5A" text-anchor="middle">高地址</text>
+  <text x="54" y="451" font-size="12" fill="#5F5E5A" text-anchor="middle">低地址</text>
 
-  <line x1="52" y1="80" x2="52" y2="248" stroke="#B4B2A9" stroke-width="1.5" marker-start="url(#ar)" marker-end="url(#ar)"/>
-  <text x="44" y="84" font-size="12" fill="#5F5E5A" text-anchor="end" dominant-baseline="central">高地址</text>
-  <text x="44" y="248" font-size="12" fill="#5F5E5A" text-anchor="end" dominant-baseline="central">低地址</text>
+  <g>
+    <rect x="78" y="108" width="250" height="468" rx="16" fill="#FFFFFF" stroke="#E3E2DE" stroke-width="1.5"/>
+    <circle cx="105" cy="140" r="15" fill="#E6F1FB" stroke="#378ADD"/>
+    <text x="105" y="145" font-size="14" font-weight="700" fill="#185FA5" text-anchor="middle">1</text>
+    <text x="128" y="145" font-size="16" font-weight="700" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace">call add</text>
+    <text x="96" y="170" font-size="12" fill="#5F5E5A">进入被调用函数</text>
 
-  <!-- 第 1 列：call 之后 -->
-  <rect x="80" y="80" width="104" height="44" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="88" y="102" font-size="12" fill="#5F5E5A" dominant-baseline="central">调用者栈帧</text>
-  <rect x="80" y="124" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="0.5"/>
-  <text x="88" y="140" font-size="12" font-weight="500" fill="#501313" dominant-baseline="central">返回地址</text>
-  <line x1="198" y1="140" x2="188" y2="140" stroke="#888780" stroke-width="1.5" marker-end="url(#ar)"/>
-  <text x="202" y="140" font-size="12" font-weight="500" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace" dominant-baseline="central">rsp</text>
-  <text x="132" y="272" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle">① call add</text>
-  <text x="132" y="290" font-size="12" fill="#5F5E5A" text-anchor="middle">返回地址入栈</text>
+    <rect x="96" y="196" width="140" height="56" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="166" y="229" font-size="14" font-weight="600" fill="#2C2C2A" text-anchor="middle">调用者栈帧</text>
+    <rect x="96" y="252" width="140" height="52" rx="9" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.5"/>
+    <text x="166" y="283" font-size="14" font-weight="600" fill="#501313" text-anchor="middle">返回地址</text>
 
-  <!-- 第 2 列：push rbp -->
-  <rect x="240" y="80" width="104" height="44" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="248" y="102" font-size="12" fill="#5F5E5A" dominant-baseline="central">调用者栈帧</text>
-  <rect x="240" y="124" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="0.5"/>
-  <text x="248" y="140" font-size="12" font-weight="500" fill="#501313" dominant-baseline="central">返回地址</text>
-  <rect x="240" y="156" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="248" y="172" font-size="12" fill="#5F5E5A" dominant-baseline="central">保存的 rbp</text>
-  <line x1="358" y1="172" x2="348" y2="172" stroke="#888780" stroke-width="1.5" marker-end="url(#ar)"/>
-  <text x="362" y="172" font-size="12" font-weight="500" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace" dominant-baseline="central">rsp rbp</text>
-  <text x="292" y="272" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle">② push rbp</text>
-  <text x="292" y="290" font-size="12" fill="#5F5E5A" text-anchor="middle">保存调用者的 rbp</text>
+    <line x1="248" y1="224" x2="236" y2="224" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow-gray)"/>
+    <text x="252" y="229" font-size="12" font-weight="600" fill="#5F5E5A" font-family="ui-monospace, Consolas, monospace">RBP</text>
+    <line x1="248" y1="278" x2="236" y2="278" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="252" y="283" font-size="12" font-weight="700" fill="#185FA5" font-family="ui-monospace, Consolas, monospace">RSP</text>
 
-  <!-- 第 3 列：sub rsp -->
-  <rect x="400" y="80" width="104" height="44" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="408" y="102" font-size="12" fill="#5F5E5A" dominant-baseline="central">调用者栈帧</text>
-  <rect x="400" y="124" width="104" height="32" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="0.5"/>
-  <text x="408" y="140" font-size="12" font-weight="500" fill="#501313" dominant-baseline="central">返回地址</text>
-  <text x="512" y="140" font-size="11" fill="#A32D2D" font-family="ui-monospace, Consolas, monospace" dominant-baseline="central">rbp+0x8</text>
-  <rect x="400" y="156" width="104" height="32" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="408" y="172" font-size="12" fill="#5F5E5A" dominant-baseline="central">保存的 rbp</text>
-  <text x="512" y="172" font-size="11" fill="#888780" font-family="ui-monospace, Consolas, monospace" dominant-baseline="central">rbp</text>
-  <rect x="400" y="188" width="104" height="60" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
-  <text x="408" y="212" font-size="12" font-weight="500" fill="#042C53" dominant-baseline="central">局部变量区</text>
-  <text x="408" y="230" font-size="11" fill="#185FA5" dominant-baseline="central">栈参数也从这借（如数组）</text>
-  <line x1="518" y1="218" x2="508" y2="218" stroke="#888780" stroke-width="1.5" marker-end="url(#ar)"/>
-  <text x="522" y="218" font-size="12" font-weight="500" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace" dominant-baseline="central">rsp</text>
-  <text x="452" y="272" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle">③ sub rsp, 0x10</text>
-  <text x="452" y="290" font-size="12" fill="#5F5E5A" text-anchor="middle">开辟局部变量空间</text>
+    <rect x="96" y="454" width="214" height="96" rx="12" fill="#F8F7F3"/>
+    <text x="112" y="483" font-size="13" fill="#2C2C2A">call 压入返回地址，</text>
+    <text x="112" y="506" font-size="13" fill="#2C2C2A">RSP 指向该地址。</text>
+    <text x="112" y="529" font-size="12" fill="#5F5E5A">RBP 仍指向调用者的栈帧。</text>
+  </g>
 
-  <!-- 第 4 列：leave ret -->
-  <rect x="560" y="80" width="104" height="44" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
-  <text x="568" y="102" font-size="12" fill="#5F5E5A" dominant-baseline="central">调用者栈帧</text>
-  <rect x="560" y="124" width="104" height="32" rx="6" fill="#FCFCFB" stroke="#E24B4A" stroke-width="0.8" stroke-dasharray="4 3"/>
-  <text x="568" y="140" font-size="12" fill="#A32D2D" dominant-baseline="central">返回地址（已弹出）</text>
-  <text x="612" y="210" font-size="12" font-weight="500" fill="#A32D2D" text-anchor="middle">弹出 → 写入 RIP</text>
-  <text x="612" y="228" font-size="12" fill="#A32D2D" text-anchor="middle">CPU 从那里继续执行</text>
-  <text x="612" y="272" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle">④ leave; ret</text>
-  <text x="612" y="290" font-size="12" fill="#5F5E5A" text-anchor="middle">栈帧回收，回到调用者</text>
+  <g>
+    <rect x="353" y="108" width="250" height="468" rx="16" fill="#FFFFFF" stroke="#E3E2DE" stroke-width="1.5"/>
+    <circle cx="380" cy="140" r="15" fill="#E6F1FB" stroke="#378ADD"/>
+    <text x="380" y="145" font-size="14" font-weight="700" fill="#185FA5" text-anchor="middle">2</text>
+    <text x="403" y="145" font-size="14" font-weight="700" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace">push rbp; mov rbp, rsp</text>
+    <text x="371" y="170" font-size="12" fill="#5F5E5A">保存旧 rbp，建立当前帧</text>
 
-  <text x="80" y="326" font-size="12" fill="#5F5E5A">leave = mov rsp, rbp + pop rbp；ret = pop rip + 跳转。压了什么弹什么，原路收回。</text>
-  <text x="80" y="348" font-size="12" font-weight="500" fill="#A32D2D">ret 弹到哪，RIP 就到哪 —— 所有控制流劫持（ret2win / ROP）抢的都是这一下。</text>
+    <rect x="371" y="196" width="140" height="56" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="441" y="229" font-size="14" font-weight="600" fill="#2C2C2A" text-anchor="middle">调用者栈帧</text>
+    <rect x="371" y="252" width="140" height="52" rx="9" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.5"/>
+    <text x="441" y="274" font-size="13" font-weight="600" fill="#501313" text-anchor="middle">返回地址</text>
+    <text x="441" y="293" font-size="11" fill="#A32D2D" text-anchor="middle">[rbp + 8]</text>
+    <rect x="371" y="304" width="140" height="52" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="441" y="326" font-size="13" font-weight="600" fill="#2C2C2A" text-anchor="middle">保存的 rbp</text>
+    <text x="441" y="345" font-size="11" fill="#5F5E5A" text-anchor="middle">[rbp]</text>
+
+    <line x1="523" y1="330" x2="511" y2="330" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="527" y="335" font-size="12" font-weight="700" fill="#185FA5" font-family="ui-monospace, Consolas, monospace">RSP = RBP</text>
+
+    <rect x="371" y="454" width="214" height="96" rx="12" fill="#F8F7F3"/>
+    <text x="387" y="483" font-size="13" fill="#2C2C2A">push 保存调用者的 rbp；</text>
+    <text x="387" y="506" font-size="13" fill="#2C2C2A">mov 让 rbp 指向新栈帧。</text>
+    <text x="387" y="529" font-size="12" fill="#5F5E5A">此时 rbp 与 rsp 指向同一位置。</text>
+  </g>
+
+  <g>
+    <rect x="628" y="108" width="250" height="468" rx="16" fill="#FFFFFF" stroke="#E3E2DE" stroke-width="1.5"/>
+    <circle cx="655" cy="140" r="15" fill="#E6F1FB" stroke="#378ADD"/>
+    <text x="655" y="145" font-size="14" font-weight="700" fill="#185FA5" text-anchor="middle">3</text>
+    <text x="678" y="145" font-size="16" font-weight="700" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace">sub rsp, 0x10</text>
+    <text x="646" y="170" font-size="12" fill="#5F5E5A">为函数栈数据预留 16 字节</text>
+
+    <rect x="646" y="196" width="140" height="56" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="716" y="229" font-size="14" font-weight="600" fill="#2C2C2A" text-anchor="middle">调用者栈帧</text>
+    <rect x="646" y="252" width="140" height="52" rx="9" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.5"/>
+    <text x="716" y="274" font-size="13" font-weight="600" fill="#501313" text-anchor="middle">返回地址</text>
+    <text x="716" y="293" font-size="11" fill="#A32D2D" text-anchor="middle">[rbp + 8]</text>
+    <rect x="646" y="304" width="140" height="52" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="716" y="326" font-size="13" font-weight="600" fill="#2C2C2A" text-anchor="middle">保存的 rbp</text>
+    <text x="716" y="345" font-size="11" fill="#5F5E5A" text-anchor="middle">[rbp]</text>
+    <rect x="646" y="356" width="140" height="76" rx="9" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+    <text x="716" y="386" font-size="13" font-weight="600" fill="#042C53" text-anchor="middle">本函数栈空间</text>
+    <text x="716" y="407" font-size="11" fill="#185FA5" text-anchor="middle">16 字节</text>
+
+    <line x1="798" y1="330" x2="786" y2="330" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow-gray)"/>
+    <text x="802" y="335" font-size="12" font-weight="600" fill="#5F5E5A" font-family="ui-monospace, Consolas, monospace">RBP</text>
+    <line x1="798" y1="394" x2="786" y2="394" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="802" y="399" font-size="12" font-weight="700" fill="#185FA5" font-family="ui-monospace, Consolas, monospace">RSP</text>
+
+    <rect x="646" y="454" width="214" height="96" rx="12" fill="#F8F7F3"/>
+    <text x="662" y="483" font-size="13" fill="#2C2C2A">RSP 下移 16 字节，</text>
+    <text x="662" y="506" font-size="13" fill="#2C2C2A">为本函数预留栈空间。</text>
+    <text x="662" y="529" font-size="12" fill="#5F5E5A">RBP 保持指向当前帧基址。</text>
+  </g>
+
+  <g>
+    <rect x="903" y="108" width="250" height="468" rx="16" fill="#FFFFFF" stroke="#E3E2DE" stroke-width="1.5"/>
+    <circle cx="930" cy="140" r="15" fill="#E6F1FB" stroke="#378ADD"/>
+    <text x="930" y="145" font-size="14" font-weight="700" fill="#185FA5" text-anchor="middle">4</text>
+    <text x="953" y="145" font-size="16" font-weight="700" fill="#2C2C2A" font-family="ui-monospace, Consolas, monospace">leave; ret</text>
+    <text x="921" y="170" font-size="12" fill="#5F5E5A">释放当前栈帧并返回</text>
+
+    <rect x="921" y="196" width="140" height="56" rx="9" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <text x="991" y="229" font-size="14" font-weight="600" fill="#2C2C2A" text-anchor="middle">调用者栈帧</text>
+    <rect x="921" y="252" width="140" height="52" rx="9" fill="#FCFCFB" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="991" y="274" font-size="13" font-weight="600" fill="#A32D2D" text-anchor="middle">返回地址</text>
+    <text x="991" y="293" font-size="11" fill="#A32D2D" text-anchor="middle">已弹出</text>
+
+    <line x1="1073" y1="224" x2="1061" y2="224" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow-gray)"/>
+    <text x="1077" y="229" font-size="12" font-weight="600" fill="#5F5E5A" font-family="ui-monospace, Consolas, monospace">RBP</text>
+    <line x1="1073" y1="252" x2="1061" y2="252" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+    <text x="1077" y="257" font-size="12" font-weight="700" fill="#185FA5" font-family="ui-monospace, Consolas, monospace">RSP</text>
+
+    <line x1="991" y1="306" x2="991" y2="337" stroke="#E24B4A" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+    <rect x="923" y="344" width="136" height="62" rx="10" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.2"/>
+    <text x="991" y="369" font-size="13" font-weight="700" fill="#A32D2D" text-anchor="middle">返回地址 → RIP</text>
+    <text x="991" y="390" font-size="11" fill="#5F5E5A" text-anchor="middle">回到 call 后继续执行</text>
+
+    <rect x="921" y="454" width="214" height="96" rx="12" fill="#F8F7F3"/>
+    <text x="937" y="483" font-size="13" fill="#2C2C2A">leave 恢复调用者的 rbp；</text>
+    <text x="937" y="506" font-size="13" fill="#2C2C2A">ret 将返回地址装入 RIP。</text>
+    <text x="937" y="529" font-size="12" fill="#5F5E5A">RSP 回到 call 之前的位置。</text>
+  </g>
 </svg>

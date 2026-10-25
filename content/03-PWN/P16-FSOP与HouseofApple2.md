@@ -856,7 +856,7 @@ flag{p16_house_of_apple_2}
 
 ## 6. setcontext+0x35：一次调用换一整套寄存器
 
-FSOP 的 `__doallocate` 槽位调用函数时只带一个参数（`rdi = fp`）。要执行的不是 `system` 而是一条 ROP 链（开了沙箱、`execve` 被禁、只能 ORW 的题——[[P08-ROP进阶与SROP|P8]]讲过 SROP 处理类似困境），就需要"把 rsp 搬到链上"的转移手段。glibc 的 `setcontext` 恰好是一台现成的"寄存器整体恢复机"：它本是 `getcontext`/`swapcontext` 家族的实现，==从 rdx 指向的一块 ucontext 结构里把全部寄存器逐个装回来==。2.43 上的装载段（`rdx` 为 ucontext 指针）：
+FSOP 的 `__doallocate` 槽位调用函数时只带一个参数（`rdi = fp`）。要执行的不是 `system` 而是一条 ROP 链（开了沙箱、`execve` 被禁、只能 ORW 的题——ORW 链的拼法见 [[P07-ret2libc-ret2syscall-ret2shellcode#6. seccomp 沙箱与 ORW：execve 被禁之后|P7 第 6 节]]，[[P08-ROP进阶与SROP|P8]]讲过 SROP 处理类似困境），就需要"把 rsp 搬到链上"的转移手段。glibc 的 `setcontext` 恰好是一台现成的"寄存器整体恢复机"：它本是 `getcontext`/`swapcontext` 家族的实现，==从 rdx 指向的一块 ucontext 结构里把全部寄存器逐个装回来==。2.43 上的装载段（`rdx` 为 ucontext 指针）：
 
 ```asm
 ; x86-64 Linux / System V AMD64 ABI，摘自 glibc 2.43 setcontext
@@ -931,7 +931,7 @@ system("    /bin/sh")   或   setcontext+0x3d 转栈跑 ROP/ORW
 | shell 起来了但命令不是预期的 | `system(fp)` 执行的是 fp 起始的字符串，`_flags` 与 `_IO_read_ptr` 两个槽位要拼成 `"/bin/sh\0"`，偏移摆错会截断（5.2） |
 | 改了 stdout 本体后程序打印就崩 | 程序还要用 stdio 时，整个覆盖 stdout 会让它走进伪造字段；改打 `_IO_list_all` 这 8 字节（5.4） |
 | one_gadget 候选约束全不满足 | 把 `__doallocate` 槽位换成 `setcontext+0x3d`，借 rdx=fp 转栈跑 ROP（第 6 节）； gadget 与约束见 [[P07-ret2libc-ret2syscall-ret2shellcode\|P7]]、[[P08-ROP进阶与SROP\|P8]] |
-| 题目开沙箱，shell 拿了也读不了 flag | `execve` 被禁，改 ORW：setcontext 转栈后跑 open/read/write 的 ROP 链（第 6 节） |
+| 题目开沙箱，shell 拿了也读不了 flag | `execve` 被禁，改 ORW（[[P07-ret2libc-ret2syscall-ret2shellcode#6. seccomp 沙箱与 ORW：execve 被禁之后\|P7 第 6 节]]）：setcontext 转栈后跑 open/read/write 的 ROP 链（第 6 节） |
 | 按老题解 free 7 个装满 tcache / 第 8 个进 fastbin | 版本行为不同，先读 [[P12-glibc堆管理机制#9. glibc 2.43 行为注记\|P12 第 9 节]]的对照表 |
 | 远程能跑通本地偏移却对不上 | 偏移表要用题目附件的 libc 重新量，本地用 patchelf 装附件（[[P03-ELF链接与延迟绑定#5.3 patchelf：把题目环境装到本地\|P3 5.3]]） |
 

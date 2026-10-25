@@ -1,7 +1,7 @@
 ---
 chapter: PWN
 section: 多平台 PWN
-order: 319
+order: 320
 tags:
   - CTF
   - PWN
@@ -9,7 +9,7 @@ tags:
 publish: true
 ---
 
-# P19 多平台 PWN
+# P20 多平台 PWN
 ## Multi-Platform PWN
 
 > [!info]- 章节信息

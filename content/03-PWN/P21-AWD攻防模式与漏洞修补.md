@@ -1,7 +1,7 @@
 ---
 chapter: PWN
 section: AWD 攻防模式与漏洞修补
-order: 320
+order: 321
 tags:
   - CTF
   - PWN
@@ -9,7 +9,7 @@ tags:
 publish: true
 ---
 
-# P20 AWD 攻防模式与漏洞修补
+# P21 AWD 攻防模式与漏洞修补
 ## AWD: Attack with Defense & Patching
 
 > [!info]- 章节信息
@@ -434,7 +434,7 @@ python3 exp_auto.py 127.0.0.1 9002
 ```
 
 > [!info]- 利用目标的选择：不必次次 getshell
-> ret2win 直接读 flag，一步到位。若服务没有 win 这类直达路径，就退回 [[P07-ret2libc-ret2syscall-ret2shellcode|P7]] 的 getshell 路线，shell 起来后 `cat flag.txt` 一发就退——AWD 交互要的是 flag，不是驻留。极端场景（服务开 seccomp 只留 open/read/write）用 ORW 收尾，工具与链形见 [[P16-FSOP与HouseofApple2#6. setcontext+0x35：一次调用换一整套寄存器|P16 第 6 节]]。自动化脚本里的对应原则：==每一步交互都为"取出当前轮 flag"服务，多余动作都是给对方流量分析送材料==（第 4 节马上会看到为什么）。
+> ret2win 直接读 flag，一步到位。若服务没有 win 这类直达路径，就退回 [[P07-ret2libc-ret2syscall-ret2shellcode|P7]] 的 getshell 路线，shell 起来后 `cat flag.txt` 一发就退——AWD 交互要的是 flag，不是驻留。极端场景（服务开 seccomp 只留 open/read/write）用 ORW 收尾，工具与链形见 [[P07-ret2libc-ret2syscall-ret2shellcode#6. seccomp 沙箱与 ORW：execve 被禁之后|P7 第 6 节]]，转栈手段见 [[P16-FSOP与HouseofApple2#6. setcontext+0x35：一次调用换一整套寄存器|P16 第 6 节]]。自动化脚本里的对应原则：==每一步交互都为"取出当前轮 flag"服务，多余动作都是给对方流量分析送材料==（第 4 节马上会看到为什么）。
 
 ### 3.3 批量打多队
 
@@ -968,4 +968,4 @@ python3 exp_auto.py 127.0.0.1 9001 | python3 submit_flag.py
 
 - **工具与脚本**：pwntools 的 remote/recvuntil/recvall 在 [[P05-pwntools与GDB插件工具链#3. 连接与输入输出：process、remote 与一套收发函数|P5 第 3 节]]；tcpdump 的过滤表达式写法见其手册的 pcap-filter 一节，本章用到的只有 `tcp port` 一个原语；开源 AWD 训练平台（GitHub 搜 awd platform、awd judge）的裁判与轮换实现值得读一遍，对照本章 2.3 与第 6 节的自建版。
 - **修补技术**：等长补丁的完整方法论在 [[R08-CrackMe经典题型#5.5 补丁规范|R8 5.5]] 与其第 5 节；被 nop 的漏洞如果来自编译期加固缺失，[[P04-Linux安全缓解机制|P4]] 的机制表能帮你判断"哪些漏洞本可以不出现"。
-- **后续章节**：AWD 里的队伍分工、时间管理与 WriteUp 沉淀 → [[R17-赛事策略与团队协作|R17]]；把本章的攻防循环放进整体参赛策略 → [[P21-综合实战赛事策略与AI辅助|P21]]。
+- **后续章节**：AWD 里的队伍分工、时间管理与 WriteUp 沉淀 → [[R17-赛事策略与团队协作|R17]]；把本章的攻防循环放进整体参赛策略 → [[P22-综合实战赛事策略与AI辅助|P22]]。

